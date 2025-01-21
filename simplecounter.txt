@@ -1,0 +1,11 @@
+; Daniel Gergov
+; 1/20/25
+; This code describes a simple decrementing counter. It decrements the value in the X register (taken from the memory location $04ff) as a loop until the value in the X register reaches 0. After code execution starting from memory location $0500, the program counter should read $0507 and the X register should read 00 to ensure correctness.
+
+* = $0500                ; code starts at address $0500
+a = $04ff                ; place our counter value at address 1279 decimal, where a is the value to be decremented
+
+main  LDA a     AE FF 04 ; program entry point, load the value at $04ff into the X register
+loop  DEX       CA       ; decrement the X register by 1
+      BNE loop  D0 FD    ; branch if X is not zero by an offset of -3 in decmial (move back 3 bytes)
+      BRK       00       ; stop code execution
