@@ -1,0 +1,38 @@
+; Daniel Gergov
+; 2/4/25
+; This program adds two given n-bit values stored in the v1 and v2 variables and places the n + 1 byte result of the addition into the v variable.
+; The program loops through the n bytes of v1 and v2 starting by adding the lower bytes and storing the result in the corresponding bytes v, while handling the carry for each addition using the carry flag.
+; The program finishes once the loop has successfully looped through and added each byte of v1 and v2, finally handling the final carry through the carry flag, storing the carry in the nth byte of v.
+; The program should be tested with values of n such as 1, 2, and 3. For n = 1, we test (00 + 00 = 00 00), (aa + aa = 54 01), (ff + ff = fe 01), (aa + bb = 65 01), and (cc + aa = 76 01).
+; For n = 2, we test (00 00 + 00 00 = 00 00 00), (aa aa + aa aa = 54 55 01), (ff ff + ff ff = fe ff 01), (aa aa + bb bb = 65 66 01), and (cc cc + aa aa = 76 77 01).
+; For n = 3, we test (00 00 00 + 00 00 00 = 00 00 00 00), (aa aa aa + aa aa aa = 54 55 55 01), (ff ff ff + ff ff ff = fe ff ff 01), (aa aa aa + bb bb bb = 65 66 66 01), and (cc cc cc + aa aa aa = 76 77 77 01).
+
+* = $0500                ; code starts at address $0500
+(v1) = $0600             ; the first number to add
+(v2) = $0700             ; the second number to add
+(v) = $0800              ; the result of the n-byte addition
+n = $54                  ; the number of bytes in v1 and v2, with v having (n + 1) bytes
+v1 = $55 - $56           ; a pointer to the first number to add (v1)
+v2 = $57 - $58           ; a pointer to the second number to add (v2)
+v = $59 - $5a            ; a pointer to the result of the n-byte addition (v)
+
+Addresses    Byte1    Byte2    Byte3    Labels    OpCode    Args       Comments
+=========    =====    =====    =====    ======    ======    ====       ========
+0500         18       -        -         main      CLC                 ; program entry point, clears the carry register to essentially reset the state machine from any previous operations
+0501         A0       00       -         -         LDY      #0         ; set up the y register by loading zero into it, therefore preparing to increment it (n times)
+0503         A6       54       -         -         LDX      n          ; set up the x register by loading n into it, therefore preparing to decrement it (n times)
+0505         B1       55       -         loop      LDA      (v1), Y    ; set up the addition of the Yth bytes (of v1 and v2) by loading the Yth byte of v1 into the accumulator
+0507         71       57       -         -         ADC      (v2), Y    ; performs the addition of the Yth bytes (of v1 and v2) by adding the accumulator to the Yth byte of v2 and the previous carry, storing the result in the accumulator
+0509         91       59       -         -         STA      (v), Y     ; saves the result into the Yth byte of v
+050B         C8       -        -         -         INY                 ; increments the Y register to keep track of which bytes (of v1 and v2) to add and which byte of v to store the result in
+050C         CA       -        -         -         DEX                 ; decrements the X register to keep track of when to end the loop (once the X register reaches 0)
+050D         D0       F6       -         -         BNE      loop       ; checks the loop condition, once X reaches 0, the loop terminates, indicating that all bytes of v1 and v2 were added
+051F         A9       00       -         -         LDA      #0         ; loads 0 into the accumulator to prepare for processing the leftover carry
+0511         69       00       -         -         ADC      #0         ; adds the leftover carry to the accumulator, saving the result in the accumulator
+0513         A4       54       -         -         LDY      n          ; loads n into the Y register, to ensure the carry is saved in the nth byte of the result (v)
+0515         91       59       -         -         STA      (v), Y     ; saves the accumulator (carry) in the nth byte of the result (v)
+0517         00       -        -         -         BRK                 ; stop code execution, end of program
+
+:  0500 18 a0 00 a6 54 b1 55 71
+:  0508 57 91 59 c8 ca d0 f6 a9
+:  0510 00 69 00 a4 54 91 59 00

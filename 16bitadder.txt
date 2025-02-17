@@ -1,0 +1,31 @@
+; Daniel Gergov
+; 1/23/25
+; This program adds two given 16-bit values stored in b1 and b2 variables and places the result of the addition into the v variable.
+; The program adds the low bytes and stores the result in v. Then, the program adds the high bytes and stores the resulting mid byte in v+1. with the carry flag handling the high bytes, storing that result in v+2.
+; The program should be tested with these values in b1 and b2 respectively, marking the extreme cases, overflow cases, and simple cases: 0000 0000, FFFF FFFF, 0001 0002, AAAA AAAA, AAAA BBBB, CCCC AAAA.
+; These test cases should yield respectively: 00 00 00, FE FF 01, 00 03 00, 54 55 01, 65 66 01, 76 77 01, with these results being expressed in little endian.
+
+* = $0500                ; code starts at address $0500
+b1 = $0600               ; the first number to add in the 24-bit addition
+b2 = $0602               ; the second number to add in the 24-bit addition
+v = $0604                ; the result of the 24-bit addition, in v, v+1, and v+2
+
+Addresses    Byte1    Byte2    Byte3    Labels    OpCode    Args       Comments
+=========    =====    =====    =====    ======    ======    ====       ========
+0500         18                          main      CLC                 ; program entry point, clears the carry register to essentially reset the state machine from any previous operations
+0501         AD       00       06        -         LDA      b1         ; sets up the addition by loading the low-byte of b1 into the accumulator
+0504         6D       02       06        -         ADC      b2         ; performs addition of b1's low byte and b2's low byte with carry, saving the result's low byte in the accumulator
+0507         8D       04       06        -         STA      v          ; saves the low byte of the result into v
+050A         AD       01       06        -         LDA      b1+1       ; sets up the next addition by loading the high-byte of b1 into into the accumulator
+050D         6D       03       06        -         ADC      b2+1       ; performs addition of b1's high byte and b2's high byte with carry, saving the results's mid byte in the accumulator
+0510         8D       05       06        -         STA      v+1        ; saves the mid byte of the result into v+1
+0513         A9       00                 -         LDA      #0         ; reset the accumulator by loading 0 into it
+0515         69       00                 -         ADC      #0         ; add zero to the accumulator along with the carry flag, saving the result's high byte in the accumulator
+0517         8D       06       06        -         STA      v+2        ; saves the high byte of the result into v+2
+051A         00                          -         BRK                 ; stop code execution, end of program
+
+:  0500 18 ad 00 06 6d 02 06 8d
+:  0508 04 06 ad 01 06 6d 03 06
+:  0510 8d 05 06 a9 00 69 00 8d
+:  0518 06 06 00 aa aa aa aa aa
+:  0600 ff ff ff ff aa aa aa aa 

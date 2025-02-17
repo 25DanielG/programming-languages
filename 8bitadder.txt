@@ -1,0 +1,20 @@
+; Daniel Gergov
+; 1/23/25
+; This program adds to given 8-bit values stored in b1 and b2 variables and places the result of the addition into the v variable.
+; The program adds the low bytes and stores the result in v, with the carry flag handling the high bytes, storing that result in v+1.
+; The program should be tested with these values in b1 and b2 respectively, marking the extreme cases, overflow cases, and simple cases: 00 00, FF FF, 01 02, AA AA, AA BB, CC AA.
+; These test cases should yield respectively: 00 00, FE 01, 03 00, 54 01, 65 01, 76 01, with these results being expressed in little endian.
+
+* = $0500                ; code starts at address $0500
+b1 = $0600               ; the first number to add in the 16-bit addition
+b2 = $0601               ; the second number to add in the 16-bit addition
+v = $0602                ; the result of the 16-bit addition, in v and v+1
+
+main  CLC       18          ; program entry point, clears the carry register to essentially reset the state machine from any previous operations
+      LDA b1    AD 00 06    ; sets up the addition by loading b1 into the accumulator
+      ADC b2    6D 01 06;   ; performs the addition of b1 and b2 with carry, saving the result's low byte in the accumulator
+      STA v     8D 02 06    ; saves the low byte of the result into v
+      LDA #0    A9 00       ; reset the accumulator by loading 0 into it
+      ADC #0    69 00       ; add zero to the accumulator along with the carry flag, saving the result's high byte in the accumulator
+      STA v+1   8D 03 06    ; saves the high byte of the result into v+1
+      BRK       00          ; stop code execution, end of program
