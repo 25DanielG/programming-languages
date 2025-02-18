@@ -9,18 +9,15 @@ v2 = $0057 - $0058
 v = $0059 - $005a
 y = Y register
 
-CLC
-LDY #0
-LDX $0054
+main:
+    CLC
+    LDY #0
+    LDX $0054
+    BEQ end
 loop:
-LDA ($0055), Y
-ADC ($0057), Y
-STA ($0059), Y
-INY
-DEX
-BNE loop
-LDA #0
-ADC #0
-LDY $0054
-STA ($0059), Y
-BRK
+    LDA ($0055), Y
+    ADC ($0057), Y
+    STA ($0059), Y
+    INY
+    DEX
+ 
