@@ -20,4 +20,10 @@ loop:
     STA ($0059), Y
     INY
     DEX
- 
+    BNE loop
+    LDA #0
+    ADC #0
+    LDY $0054
+    STA ($0059), Y
+end:
+    BRK
