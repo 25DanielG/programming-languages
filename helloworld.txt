@@ -1,0 +1,39 @@
+; Daniel Gergov
+; 2/27/25
+; 
+
+* = $0500                ; code starts at address $0500
+buffer = $54 - $55
+(buffer) = $0600
+cursor = $00 - $01
+(cursor) = $8000
+
+Addresses    Byte1    Byte2    Byte3    Labels    OpCode    Args           Comments
+=========    =====    =====    =====    ======    ======    ====           ========
+0500         A0       00       -         main      LDY      #0             ; 
+0502         B1       54       -         -         LDA      (buffer), Y    ; 
+0504         F0       19       -         -         BEQ      end            ; 
+0506         A8       -        -         -         TAY                     ; 
+0507         B1       54       -         loop      LDA      (buffer), Y    ; 
+0509         88       -        -         -         DEY                     ; 
+050A         91       00       -         -         STA      (cursor), Y    ; 
+050C         C0       00       -         -         CPY      #0             ; 
+050E         D0       F7       -         -         BNE      loop           ; 
+0510         A0       00       -         -         LDY      #0             ; 
+0512         18       -        -         -         CLC                     ; 
+0513         A5       00       -         -         LDA      cursor         ; 
+0515         71       54       -         -         ADC      (buffer), Y    ; 
+0517         85       00       -         -         STA      cursor         ; 
+0519         A5       01       -         -         LDA      cursor + 1     ; 
+051B         69       00       -         -         ADC      #0             ; 
+051D         85       01       -         -         STA      cursor + 1     ; 
+051F         00       -        -         end       BRK                     ; stop code execution, end of program
+
+:  0500 a0 00 b1 54 f0 19 a8 b1
+:  0508 54 88 91 00 c0 00 d0 f7
+:  0510 a0 00 18 a5 00 71 54 85
+:  0518 00 a5 01 69 00 85 01 00
+:  0600 0b 48 05 0c 0c 0f 20 57
+:  0608 0f 12 0c 04 aa aa aa aa
+:  0054 00 06 aa aa aa aa aa aa
+:  0000 b0 87 c3 22 00 5b 00 00

@@ -1,0 +1,30 @@
+* = $0500                ; code starts at address $0500
+
+buffer = $0054 - $0055
+(buffer) = $0600
+cursor = $00
+(cursor) = mem to start printing
+y length index
+
+main:
+    LDY #0
+    LDA (buffer),Y
+    BEQ end
+    TAY
+loop:
+    LDA (buffer), Y
+    DEY
+    STA (cursor), Y
+    CPY #0
+    BNE loop
+
+    LDY #0
+    CLC
+    LDA cursor
+    ADC (buffer)
+    STA cursor
+    LDA cursor+1
+    ADC #0
+    STA cursor+1
+end:
+    BRK
