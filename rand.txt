@@ -47,8 +47,8 @@
 10620 for i = 0 to (cs - 1)
 10630   sq = sq + (bi(i) - mn) ^ 2
 10640 next i
-10645 si = sqr(sq / (cs - 1)) : rem sigma
-10650 return
+10650 si = sqr(sq / (cs - 1)) : rem sigma
+10660 return
 
 10700 rem generate histogram
 10710 dim bi(cs)
