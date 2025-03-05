@@ -1,0 +1,80 @@
+10 rc = 20 : cs = 10 : sm$ = "#" : rem histogram rows, columns, symbol
+11 n = 100                       : rem number of samples for analysis
+12 lo = 0                        : rem set the low to 0
+13 dim ht$(rc, cs)
+14 bt = ti                       : rem start time
+
+20 gosub 10200
+30 gosub 10700
+40 gosub 10400
+50 gosub 10300
+
+60 end
+
+10200 rem generate the array of random numbers
+10210 print "collecting a random sample of "; n; " from "; lo; " to "; cs
+10220 dim da(n)
+10230 rl = 0 : rh = cs
+10240 for i = 1 to n
+10250     sd = ti
+10260     ra = (rh - rl) * rnd(sd) + rl
+10270     da(i) = ra
+10280 next i
+10290 return
+
+10300 rem print the statistics of the generated histogram
+10310 print "mean="; mn; " sigma="; si; " min="; mi; " max="; ma
+10320 print "time taken="; tt; " seconds"
+10330 return
+
+10400 rem compute the statistics
+10410 mi = n : ma = 0 : su = 0
+10420 for i = 0 to (cs - 1)
+10430   if bi(i) < mi then mi = bi(i)
+10440   if bi(i) > ma then ma = bi(i)
+10450   su = su + bi(i)
+10460 next i
+10470 mn = sum / cs
+10480 gosub 10600 : gosub 10500
+10490 return
+
+10500 rem compute time taken
+10510 tt = (ti - bt) / 60
+10520 return
+
+10600 rem compute stdev
+10610 sq = 0 : rem sum squared
+10620 for i = 0 to (cs - 1)
+10630   sq = sq + (bi(i) - mn) ^ 2
+10640 next i
+10645 si = sqr(sq / (cs - 1)) : rem sigma
+10650 return
+
+10700 rem generate histogram
+10710 dim bi(cs)
+10720 for i = 0 to (cs - 1)
+10730     bi(i) = 0
+10740 next i
+10750 for i = 1 to n
+10760     bi(floor(da(i))) = bi(floor(da(i))) + 1
+10770 next i
+
+10780 for r = 1 to rc
+10790   for c = 1 to cs
+10800     ht$(r, c) = " "
+10810   next c
+10820 next r
+
+10830 for c = 0 to (cs - 1)
+10840   for r = 1 to bi(c)
+10850     if r <= rc then ht$(rc - r + 1, c + 1) = sm$
+10860   next r
+10870 next c
+
+10880 for r = 1 to rc
+10890   for c = 1 to cs
+10900     print ht$(r, c);
+10910   next c
+10920   print
+10930 next r
+10940 return

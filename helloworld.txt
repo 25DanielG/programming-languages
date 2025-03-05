@@ -1,39 +1,44 @@
 ; Daniel Gergov
 ; 2/27/25
-; 
+; This program prints a given string in a string buffer to a given cursor position, notably the memory location of the screen. The program stores the length of the string buffer
+; marked by the first byte in the buffer. Then, the program loops from the end of the string to the start, saving each byte of the string into its corresponding
+; position in the cursor. Following the printing of the string, the program increments the cursor position with the length of the string buffer in order to prepare
+; for future printing sequences. The program adds the 16-bit cursor position (memory address) to the 8-bit buffer length, by adding the low bytes of both, and
+; adding the carry to the high byte of the cursor. The result of this addition overrides the old cursor position.
+; The program should be tested with a string of length 0, medium length of 4, and maximum length of 255. Thus, for these test cases, the buffer should look like respectively:
+; (00), (04 41 54 43 53), (ff 41 ... 54).
 
 * = $0500                ; code starts at address $0500
-buffer = $54 - $55
-(buffer) = $0600
-cursor = $00 - $01
-(cursor) = $8000
+buffer = $54 - $55       ; a pointer to the string buffer
+(buffer) = $0600         ; the buffer where the legnth + string is stored
+cursor = $00 - $01       ; a pointer to the cursor position
+(cursor) = $8000         ; the position of the cursor, of where to print the string
 
 Addresses    Byte1    Byte2    Byte3    Labels    OpCode    Args           Comments
 =========    =====    =====    =====    ======    ======    ====           ========
-0500         A0       00       -         main      LDY      #0             ; 
-0502         B1       54       -         -         LDA      (buffer), Y    ; 
-0504         F0       19       -         -         BEQ      end            ; 
-0506         A8       -        -         -         TAY                     ; 
-0507         B1       54       -         loop      LDA      (buffer), Y    ; 
-0509         88       -        -         -         DEY                     ; 
-050A         91       00       -         -         STA      (cursor), Y    ; 
-050C         C0       00       -         -         CPY      #0             ; 
-050E         D0       F7       -         -         BNE      loop           ; 
-0510         A0       00       -         -         LDY      #0             ; 
-0512         18       -        -         -         CLC                     ; 
-0513         A5       00       -         -         LDA      cursor         ; 
-0515         71       54       -         -         ADC      (buffer), Y    ; 
-0517         85       00       -         -         STA      cursor         ; 
-0519         A5       01       -         -         LDA      cursor + 1     ; 
-051B         69       00       -         -         ADC      #0             ; 
-051D         85       01       -         -         STA      cursor + 1     ; 
-051F         00       -        -         end       BRK                     ; stop code execution, end of program
+0500         A0       00       -         main      LDY      #0             ; load 0 into the Y register to allow for indirect addressing with no offset
+0502         B1       54       -         -         LDA      (buffer), Y    ; load the length of the string into the accumulator
+0504         F0       19       -         -         BEQ      end            ; if the length of the string to print is 0, skip to the end and do nothing
+0506         A8       -        -         -         TAY                     ; transfer the length of the string in the accumulator to the y register
+0507         B1       54       -         loop      LDA      (buffer), Y    ; begin the loop by loading the last byte of the string buffer into the accumulator
+0509         88       -        -         -         DEY                     ; decrement the y register to account for the extra length taken by the first byte of the buffer
+050A         91       00       -         -         STA      (cursor), Y    ; save the last byte of the string buffer into its corresponding position in the cursor
+050C         C0       00       -         -         CPY      #0             ; compare the y register to 0 as the loop condition
+050E         D0       F7       -         -         BNE      loop           ; if the y register is 0, the loop will end, otherwise repeat the loop body
+0510         18       -        -         -         CLC                     ; clear the carry register to prepare for the 16-bit and 8-bit addition (to update the cursor position)
+0511         A5       00       -         -         LDA      cursor         ; load the low byte of the cursor into the accumulator
+0513         71       54       -         -         ADC      (buffer), Y    ; add the low byte of the cursor to the length of the string buffer, storing the result in the accumulator
+0515         85       00       -         -         STA      cursor         ; save the resulting byte into the low byte of the cursor
+0517         A5       01       -         -         LDA      cursor + 1     ; load the high byte of the cursor into the accumulator
+0519         69       00       -         -         ADC      #0             ; add the stored carry from the previous addition to the high byte of the cursor
+051B         85       01       -         -         STA      cursor + 1     ; store the resulting byte into the high byte of the cursor, ultimately updating the cursors position
+051D         00       -        -         end       BRK                     ; stop code execution, end of program
 
 :  0500 a0 00 b1 54 f0 19 a8 b1
 :  0508 54 88 91 00 c0 00 d0 f7
-:  0510 a0 00 18 a5 00 71 54 85
-:  0518 00 a5 01 69 00 85 01 00
+:  0510 18 a5 00 71 54 85 00 a5
+:  0518 01 69 00 85 01 00 aa aa
 :  0600 0b 48 05 0c 0c 0f 20 57
 :  0608 0f 12 0c 04 aa aa aa aa
 :  0054 00 06 aa aa aa aa aa aa
-:  0000 b0 87 c3 22 00 5b 00 00
+:  0000 00 80 c3 22 00 5b 00 00
