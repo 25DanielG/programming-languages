@@ -4,6 +4,8 @@
 40 rem The code then generates a histogram of the sample as well as
 50 rem providing statistics on the histogram bins such as standard deviation
 60 rem mean, min, max, and time taken to generate the histogram.
+70 rem The code scales the height of the histogram to rc and prints it
+80 rem to the screen.
 
 100 rc = 20 : cs = 10 : sm$ = "#"             : rem hist rows, columns, symbol
 110 n = 100                                   : rem # of samples for analysis
@@ -22,11 +24,11 @@
 
 10000 rem generate the array of random numbers
 10010 print "collecting a random sample of "; n; " from "; lo; " to "; cs
-10020 rl = 0 : rh = cs
+10020 rl = 0 : rh = cs : rem set the random low and high
 10030 for i = 1 to n
 10040   sd = ti
-10050   ra = (rh - rl) * rnd(sd) + rl
-10060   da(i) = ra
+10050   ra = (rh - rl) * rnd(sd) + rl : rem gen the random number
+10060   da(i) = ra : rem put the number in an array
 10070 next i
 10080 return
 
@@ -37,18 +39,18 @@
 10140 return
 
 10200 rem compute the statistics
-10210 mi = n : ma = 0 : su = 0
+10210 mi = n : ma = 0 : su = 0 : rem define min, max, and sum
 10220 for i = 0 to (cs - 1)
 10230   if bi(i) < mi then mi = bi(i)
 10240   if bi(i) > ma then ma = bi(i)
 10250   su = su + bi(i)
 10260 next i
-10270 mn = sum / cs
+10270 mn = sum / cs : rem compute mean
 10280 gosub 10400
 10290 return
 
 10300 rem compute time taken
-10310 tt = (ti - bt) / 60
+10310 tt = (ti - bt) / 60 : rem compute time taken in seconds
 10320 return
 
 10400 rem compute stdev
@@ -56,12 +58,12 @@
 10420 for i = 0 to (cs - 1)
 10430   sq = sq + (bi(i) - mn) ^ 2
 10440 next i
-10450 si = sqr(sq / (cs - 1)) : rem sigma
+10450 si = sqr(sq / (cs - 1)) : rem compute sigma
 10460 return
 
 10500 rem generate bins
 10510 for i = 1 to n
-10520   bi(floor(da(i))) = bi(floor(da(i))) + 1
+10520   bi(floor(da(i))) = bi(floor(da(i))) + 1 : rem bi stores every bin
 10530 next i
 10540 return
 
@@ -69,8 +71,8 @@
 10610 for c = 0 to (cs - 1)
 10620   bi(c) = bi(c) * rc / ma : rem scale the histogram data
 10630   for r = 1 to rc
-10640     if r >= rc - bi(c) then ht$(r, c + 1) = sm$
-10650     if r < rc - bi(c) then ht$(r, c + 1) = " "
+10640     if r >= rc - bi(c) then ht$(r, c + 1) = sm$ : rem place sm$ if in bin
+10650     if r < rc - bi(c) then ht$(r, c + 1) = " " : rem place ' ' if not
 10660   next r
 10670 next c
 10680 return
