@@ -5,11 +5,11 @@
 50 rem providing statistics on the histogram bins such as standard deviation
 60 rem mean, min, max, and time taken to generate the histogram.
 
-100 rc = 20 : cs = 10 : sm$ = "#" : rem histogram rows, columns, symbol
-110 n = 100                       : rem number of samples for analysis
-120 lo = 0                        : rem set the low to 0
-130 dim ht$(rc, cs)
-140 bt = ti                       : rem start time
+100 rc = 20 : cs = 10 : sm$ = "#"             : rem histogram rows, columns, symbol
+110 n = 100                                   : rem number of samples for analysis
+120 lo = 0                                    : rem set the low to 0
+130 dim ht$(rc, cs) : dim bi(cs) : dim da(n)  : allocate arrays for the code
+140 bt = ti                                   : rem start time
 
 200 gosub 10000 : rem generate array of numbers
 210 gosub 10500 : rem generate bins
@@ -22,14 +22,13 @@
 
 10000 rem generate the array of random numbers
 10010 print "collecting a random sample of "; n; " from "; lo; " to "; cs
-10020 dim da(n)
-10030 rl = 0 : rh = cs
-10040 for i = 1 to n
-10050   sd = ti
-10060   ra = (rh - rl) * rnd(sd) + rl
-10070   da(i) = ra
-10080 next i
-10090 return
+10020 rl = 0 : rh = cs
+10030 for i = 1 to n
+10040   sd = ti
+10050   ra = (rh - rl) * rnd(sd) + rl
+10060   da(i) = ra
+10070 next i
+10080 return
 
 10100 rem calculate time taken and print the statistics of the histogram
 10110 gosub 10300
@@ -61,11 +60,10 @@
 10460 return
 
 10500 rem generate bins
-10510 dim bi(cs)
-10520 for i = 1 to n
-10530   bi(floor(da(i))) = bi(floor(da(i))) + 1
-10540 next i
-10550 return
+10510 for i = 1 to n
+10520   bi(floor(da(i))) = bi(floor(da(i))) + 1
+10530 next i
+10540 return
 
 10600 rem generate the histogram with scaling
 10610 for c = 0 to (cs - 1)
