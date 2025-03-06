@@ -26,7 +26,7 @@
 10010 print "collecting a random sample of "; n; " from "; lo; " to "; cs
 10020 rl = 0 : rh = cs : rem set the random low and high
 10030 for i = 1 to n
-10040   sd = ti
+10040   gosub 10800 : rem set the seed
 10050   ra = (rh - rl) * rnd(sd) + rl : rem gen the random number
 10060   da(i) = ra : rem put the number in an array
 10070 next i
@@ -85,3 +85,7 @@
 10750   print
 10760 next r
 10770 return
+
+10800 rem set the seed
+10810 sd = ti
+10820 return
