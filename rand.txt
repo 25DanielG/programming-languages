@@ -5,10 +5,10 @@
 50 rem providing statistics on the histogram bins such as standard deviation
 60 rem mean, min, max, and time taken to generate the histogram.
 
-100 rc = 20 : cs = 10 : sm$ = "#"             : rem histogram rows, columns, symbol
-110 n = 100                                   : rem number of samples for analysis
+100 rc = 20 : cs = 10 : sm$ = "#"             : rem hist rows, columns, symbol
+110 n = 100                                   : rem # of samples for analysis
 120 lo = 0                                    : rem set the low to 0
-130 dim ht$(rc, cs) : dim bi(cs) : dim da(n)  : allocate arrays for the code
+130 dim ht$(rc, cs) : dim bi(cs) : dim da(n)  : rem alloc arrays for the code
 140 bt = ti                                   : rem start time
 
 200 gosub 10000 : rem generate array of numbers
