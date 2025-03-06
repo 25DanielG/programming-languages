@@ -1,4 +1,4 @@
-10 rem Daniel Gergov
+10 rem daniel gergov
 20 rem 3/4/25
 30 rem The following code collects n random samples from 0 to cs.
 40 rem The code then generates a histogram of the sample as well as
@@ -7,9 +7,9 @@
 70 rem The code scales the height of the histogram to rc and prints it
 80 rem to the screen.
 
-100 rem /================== SUBROUTINE MAP ==================/
+100 rem /================== subroutine map ==================/
 105 rem /----------------------------------------------------/
-110 rem /-- LINE --/-------------- DESCRIPTION --------------/
+110 rem /-- line --/-------------- description --------------/
 115 rem /   10000  /         random number generator         /
 120 rem /   10100  /             print statistics            /
 125 rem /   10200  /            compute statistics           /
