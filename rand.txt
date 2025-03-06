@@ -7,19 +7,19 @@
 70 rem The code scales the height of the histogram to rc and prints it
 80 rem to the screen.
 
-100 rem |================== SUBROUTINE MAP ==================|
-105 rem |----------------------------------------------------|
-110 rem |-- LINE --|-------------- DESCRIPTION --------------|
-115 rem |   10000  |         random number generator         |
-120 rem |   10100  |             print statistics            |
-125 rem |   10200  |            compute statistics           |
-130 rem |   10300  |            compute time taken           |
-135 rem |   10400  |        compute standard deviation       |
-140 rem |   10500  |       generate the histogram bins       |
-145 rem |   10600  |    generate the histogram w/ scaling    |
-150 rem |   10700  |           print the histogram           |
-155 rem |   10800  |              set the seed               |
-160 rem |----------------------------------------------------|
+100 rem /================== SUBROUTINE MAP ==================/
+105 rem /----------------------------------------------------/
+110 rem /-- LINE --/-------------- DESCRIPTION --------------/
+115 rem /   10000  /         random number generator         /
+120 rem /   10100  /             print statistics            /
+125 rem /   10200  /            compute statistics           /
+130 rem /   10300  /            compute time taken           /
+135 rem /   10400  /        compute standard deviation       /
+140 rem /   10500  /       generate the histogram bins       /
+145 rem /   10600  /    generate the histogram w/ scaling    /
+150 rem /   10700  /           print the histogram           /
+155 rem /   10800  /              set the seed               /
+160 rem /----------------------------------------------------/
 
 200 rc = 20 : cs = 10 : sm$ = "#"             : rem hist rows, columns, symbol
 210 n = 100                                   : rem # of samples for analysis
