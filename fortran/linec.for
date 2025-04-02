@@ -69,5 +69,6 @@ C
       GOTO 10
 
 20    REWIND(NMUNIT)
+C
       RETURN
       END

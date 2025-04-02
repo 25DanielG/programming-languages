@@ -37,5 +37,6 @@ C
 C
       WRITE(*,10) MSG
 10    FORMAT(A)
+C
       RETURN
       END

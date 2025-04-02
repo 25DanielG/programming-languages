@@ -83,7 +83,7 @@ C
 
       WRITE(*,*) 'RETURN: Mean: ', NMEAN
       WRITE(*,*) 'RETURN: Standard Deviation: ', NSTDEV
-
+C
       RETURN
       END
 
@@ -101,7 +101,7 @@ C
       DO I = 1, LINNUM
          READ(UNITNM, *) ARRAY(I)
       END DO
-
+C
       RETURN
       END
 
@@ -128,6 +128,7 @@ C
       GOTO 10
 
 20    REWIND(NMUNIT)
+C
       RETURN
       END
 
@@ -149,8 +150,9 @@ C
       DO I = 1, LINNUM
          SUM = SUM + ARRAY(I)
       END DO
-
+C
       AVG = SUM / LINNUM
+C
       RETURN
       END
 
@@ -183,6 +185,8 @@ C
       END DO
 
       VAR = SUM / (LINNUM - 1)
+C
       STDEV = SQRT(VAR)
+C
       RETURN
       END
