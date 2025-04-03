@@ -33,7 +33,7 @@ C
 C
 C DATA STATEMENTS
 C
-      DATA FILENM /'sample_data.txt'/
+      DATA FILENM /'Geiger01-62.txt'/
 
 C
 C MAIN PROGRAM MODULE
