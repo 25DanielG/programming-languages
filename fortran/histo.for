@@ -288,7 +288,7 @@ C
 C
       DO I = 1, BINUM
          WRITE(*,1200) I-1, HISTA(I)
-1200     FORMAT(I3, 2X, I8)
+1200     FORMAT(I4, 2X, I8)
       END DO
 C
       RETURN
@@ -309,7 +309,7 @@ C
 C PARAMETERS
 C
       INTEGER MAXWID
-      PARAMETER (MAXWID = 100)
+      PARAMETER (MAXWID = 80)
 C
 C LOCAL VARIABLES
 C
@@ -326,7 +326,7 @@ C
       DO I = 1, BINUM
          NHASH = INT(REAL(HISTA(I)) / REAL(BINMAX) * MAXWID)
          WRITE(*,1210, ADVANCE='NO') I-1
-1210     FORMAT(I3, 2X)
+1210     FORMAT(I4, 2X)
          DO J = 1, NHASH
             WRITE(*,1220, ADVANCE='NO') HASH
 1220        FORMAT(A)
