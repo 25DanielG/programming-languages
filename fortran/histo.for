@@ -106,14 +106,22 @@ C
 1030  FORMAT(A, F13.6)
 
       CALL MINMAX(LINES, SARRAY, MINVAL, MAXVAL)
-      WRITE(*,1040) 'RETURN: Min:', MINVAL
-      WRITE(*,1040) 'RETURN: Max:', MAXVAL
+      WRITE(*,1050) 'RETURN: Min:', MINVAL
+      WRITE(*,1050) 'RETURN: Max:', MAXVAL
 
       CALL PROMPT(BINSTR, BINNUM)
+      IF (BINNUM < 1) THEN
+         WRITE(*,1040) 'ERROR: Invalid number of bins.'
+         RETURN
+      END IF
+      IF (BINNUM == 1) THEN
+         WRITE(*,1040) 'WARNING: Only one bin will be created.'
+      END IF
       CALL MKHIST(LINES, SARRAY, BINNUM, MINVAL, MAXVAL)
 C
       RETURN
-1040  FORMAT(A, I22)
+1040  FORMAT(A)
+1050  FORMAT(A, I22)
       END
 
 C
@@ -301,7 +309,7 @@ C
 C PARAMETERS
 C
       INTEGER MAXWID
-      PARAMETER (MAXWID = 50)
+      PARAMETER (MAXWID = 100)
 C
 C LOCAL VARIABLES
 C
