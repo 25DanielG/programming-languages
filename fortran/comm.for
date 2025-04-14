@@ -1,7 +1,7 @@
       PROGRAM COMM
 C
 C Daniel Gergov
-C April 2, 2025
+C April 13, 2025
 C
 C This program reads a file containing two arrays of integers,
 C calculates the mean, sample standard deviation, min, and max
