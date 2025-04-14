@@ -31,6 +31,15 @@ C
       INTEGER*8 COUNTL
 
 C
+C COMMON VARIABLES
+C
+      REAL*8 NMEAN
+      REAL *8 NSTDEV
+      INTEGER MINVAL
+      INTEGER MAXVAL
+      COMMON /STATS/ NMEAN, NSTDEV, MINVAL, MAXVAL
+
+C
 C DATA STATEMENTS
 C
       DATA FILENM /'Geiger01-62.txt'/
@@ -47,10 +56,23 @@ C
       WRITE(*,910) 'RETURN: Number of lines:', NUMLIN
 910   FORMAT(A, I10)
 
+C     ZERO THE STATS COMMON
+      CALL ZEROST()
+
+      WRITE(*,920) 'CHECK: Zeroed common'
+920   FORMAT(A)
+      WRITE(*,930) 'CHECK: Mean:', NMEAN
+930   FORMAT(A, F28.6)
+      WRITE(*,940) 'CHECK: Standard Deviation:', NSTDEV
+940   FORMAT(A, F14.6)
+      WRITE(*,950) 'CHECK: Min:', MINVAL
+      WRITE(*,950) 'CHECK: Max:', MAXVAL
+
       CALL FLPROC(UNIT, NUMLIN)
 
       CLOSE(UNIT)
       STOP
+950   FORMAT(A, I22)
       END PROGRAM
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -74,12 +96,16 @@ C LOCAL VARIABLES
 C
       INTEGER*8 LARRAY(LINES)
       INTEGER SARRAY(LINES)
+      INTEGER BINNUM
+      CHARACTER*24 BINSTR
+C
+C COMMON VARIABLES
+C
       REAL*8 NMEAN
       REAL*8 NSTDEV
       INTEGER MINVAL
       INTEGER MAXVAL
-      INTEGER BINNUM
-      CHARACTER*24 BINSTR
+      COMMON /STATS/ NMEAN, NSTDEV, MINVAL, MAXVAL
 C
 C FUNCTION DECLARATIONS
 C
@@ -341,6 +367,41 @@ C
       WRITE(*,1230) 'REP: # =', DBLE(BINMAX) / DBLE(MAXWID)
 1230  FORMAT(A, ES12.5)
 C
+      RETURN
+      END
+
+C
+C The ZEROST subroutine initializes the stats common variables to
+C zero. The code sets the mean, standard deviation, minimum value,
+C and maximum value to zero. The subroutine does not have any
+C arguments.
+C
+      SUBROUTINE ZEROST()
+C
+C PARAMETERS
+C
+      INTEGER NUMSTA
+      PARAMETER (NUMSTA=4)
+C
+C LOCAL VARIABLES
+C
+      INTEGER IVALS(NUMSTA)
+C
+C COMMON VARIABLES
+C
+      REAL*8 NMEAN
+      REAL*8 NSTDEV
+      INTEGER MINVAL
+      INTEGER MAXVAL
+      COMMON /STATS/ NMEAN, NSTDEV, MINVAL, MAXVAL
+C
+      EQUIVALENCE (NMEAN, IVALS(1))
+
+      INTEGER I
+      DO I = 1, NUMSTA
+         IVALS(I) = 0
+      END DO
+
       RETURN
       END
 
