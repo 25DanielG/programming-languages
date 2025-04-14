@@ -21,12 +21,12 @@ C
 C LOCAL VARIABLES
 C
       CHARACTER*16 FILENM
-      INTEGER NUMLIN
+      INTEGER*8 NUMLIN
 
 C
 C FUNCTION DECLARATIONS
 C
-      INTEGER COUNTL
+      INTEGER*8 COUNTL
 
 C
 C DATA STATEMENTS
@@ -62,16 +62,16 @@ C as arguments.
 C
       SUBROUTINE FLPROC(NMUNIT, LINES)
       INTEGER NMUNIT
-      INTEGER LINES
+      INTEGER*8 LINES
 C
       INTEGER ARRAY(LINES)
-      REAL NMEAN
-      REAL NSTDEV
+      REAL*8 NMEAN
+      REAL*8 NSTDEV
 C
 C FUNCTION DECLARATIONS
 C
-      REAL AVG
-      REAL STDEV
+      REAL*8 AVG
+      REAL*8 STDEV
 C
       CALL FLLOAD(NMUNIT, LINES, ARRAY)
 
@@ -95,8 +95,10 @@ C lines, and the array as arguments.
 C
       SUBROUTINE FLLOAD(UNITNM, LINNUM, ARRAY)
       INTEGER UNITNM
-      INTEGER LINNUM
+      INTEGER*8 LINNUM
       INTEGER ARRAY(LINNUM)
+C
+      INTEGER*8 I
 C
       DO I = 1, LINNUM
          READ(UNITNM, *) ARRAY(I)
@@ -117,7 +119,7 @@ C returns the final count. The function accepts a file unit number
 C as an argument.
 C
       FUNCTION COUNTL(NMUNIT)
-      INTEGER COUNTL
+      INTEGER*8 COUNTL
       INTEGER NMUNIT
 C
       REWIND(NMUNIT)
@@ -140,18 +142,19 @@ C returning the mean. The function accepts the number of elements
 C and the array as arguments.
 C
       FUNCTION AVG(LINNUM, ARRAY)
-      REAL AVG
-      INTEGER LINNUM
+      REAL*8 AVG
+      INTEGER*8 LINNUM
       INTEGER ARRAY(LINNUM)
 C
-      REAL SUM
+      REAL*8 SUM
+      INTEGER*8 I
 C
-      SUM = 0.0
+      SUM = 0.0D0
       DO I = 1, LINNUM
-         SUM = SUM + ARRAY(I)
+         SUM = SUM + DBLE(ARRAY(I))
       END DO
 C
-      AVG = SUM / LINNUM
+      AVG = SUM / DBLE(LINNUM)
 C
       RETURN
       END
@@ -164,27 +167,29 @@ C The code roots the variance to calculate and return stedv. It
 C accepts the number of elements and the array as arguments.
 C
       FUNCTION STDEV(LINNUM, ARRAY)
-      REAL STDEV
-      INTEGER LINNUM
+      REAL*8 STDEV
+      INTEGER*8 LINNUM
       INTEGER ARRAY(LINNUM)
 C
-      REAL SUM
-      REAL MEAN
-      REAL VAR
+C LOCAL VARIABLES
 C
-      SUM = 0.0
+      REAL*8 SUM
+      REAL*8 MEAN
+      REAL*8 VAR
+      INTEGER*8 I
+C
+C FUNCTION DECLARATIONS
+C
+      REAL*8 AVG
+C
+      MEAN = AVG(LINNUM, ARRAY)
+
+      SUM = 0.0D0
       DO I = 1, LINNUM
-         SUM = SUM + ARRAY(I)
+         SUM = SUM + ((DBLE(ARRAY(I)) - MEAN) * (DBLE(ARRAY(I)) - MEAN))
       END DO
 
-      MEAN = SUM / LINNUM
-
-      SUM = 0.0
-      DO I = 1, LINNUM
-         SUM = SUM + ((ARRAY(I) - MEAN) * (ARRAY(I) - MEAN))
-      END DO
-
-      VAR = SUM / (LINNUM - 1)
+      VAR = SUM / DBLE(LINNUM - 1)
 C
       STDEV = SQRT(VAR)
 C
