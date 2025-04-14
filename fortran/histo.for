@@ -23,12 +23,12 @@ C
 C LOCAL VARIABLES
 C
       CHARACTER*16 FILENM
-      INTEGER NUMLIN
+      INTEGER*8 NUMLIN
 
 C
 C FUNCTION DECLARATIONS
 C
-      INTEGER COUNTL
+      INTEGER*8 COUNTL
 
 C
 C DATA STATEMENTS
@@ -68,14 +68,14 @@ C unit number and the number of lines as arguments.
 C
       SUBROUTINE FLPROC(NMUNIT, LINES)
       INTEGER NMUNIT
-      INTEGER LINES
+      INTEGER*8 LINES
 C
 C LOCAL VARIABLES
 C
       INTEGER*8 LARRAY(LINES)
       INTEGER SARRAY(LINES)
-      REAL NMEAN
-      REAL NSTDEV
+      REAL*8 NMEAN
+      REAL*8 NSTDEV
       INTEGER MINVAL
       INTEGER MAXVAL
       INTEGER BINNUM
@@ -83,8 +83,8 @@ C
 C
 C FUNCTION DECLARATIONS
 C
-      REAL AVG
-      REAL STDEV
+      REAL*8 AVG
+      REAL*8 STDEV
 C
 C DATA STATEMENTS
 C
@@ -110,13 +110,16 @@ C
       WRITE(*,1050) 'RETURN: Max:', MAXVAL
 
       CALL PROMPT(BINSTR, BINNUM)
+C
       IF (BINNUM < 1) THEN
          WRITE(*,1040) 'ERROR: Invalid number of bins.'
          RETURN
       END IF
+C
       IF (BINNUM == 1) THEN
          WRITE(*,1040) 'WARNING: Only one bin will be created.'
       END IF
+C
       CALL MKHIST(LINES, SARRAY, BINNUM, MINVAL, MAXVAL)
 C
       RETURN
@@ -132,11 +135,11 @@ C lines, and the two arrays as arguments.
 C
       SUBROUTINE FLLOAD(UNITNM, LINNUM, ARRAYL, ARRAYS)
       INTEGER UNITNM
-      INTEGER LINNUM
+      INTEGER*8 LINNUM
       INTEGER*8 ARRAYL(LINNUM)
       INTEGER ARRAYS(LINNUM)
 C
-      INTEGER I
+      INTEGER*8 I
       DO I = 1, LINNUM
          READ(UNITNM, *) ARRAYL(I), ARRAYS(I)
       END DO
@@ -152,12 +155,13 @@ C number of elements, the array, and the minimum and maximum values
 C as arguments.
 C
       SUBROUTINE MINMAX(NUMEL, ARR, MINV, MAXV)
-      INTEGER NUMEL
+      INTEGER*8 NUMEL
       INTEGER ARR(NUMEL)
       INTEGER MINV
       INTEGER MAXV
 C
-      INTEGER I
+      INTEGER*8 I
+C
       MINV = ARR(1)
       MAXV = ARR(1)
       DO I = 2, NUMEL
@@ -194,7 +198,7 @@ C accepts the number of elements, the array, the number of bins,
 C the minimum value, and the maximum value as arguments.
 C
       SUBROUTINE MKHIST(NUMEL, NARRAY, NBINS, MINV, MAXV)
-      INTEGER NUMEL
+      INTEGER*8 NUMEL
       INTEGER NARRAY(NUMEL)
       INTEGER NBINS
       INTEGER MINV
@@ -223,7 +227,7 @@ C the array, the number of bins, the minimum value, the maximum
 C value, and the histogram array as arguments.
 C
       SUBROUTINE FLHIST(NELS, DATARR, NUBINS, MINV, MAXV, HIST)
-      INTEGER NELS
+      INTEGER*8 NELS
       INTEGER DATARR(NELS)
       INTEGER NUBINS
       INTEGER MINV
@@ -232,7 +236,7 @@ C
 C
 C LOCAL VARIABLES
 C
-      INTEGER I
+      INTEGER*8 I
       INTEGER INDEX
       REAL SCALE
 C
@@ -352,7 +356,7 @@ C returns the final count. The function accepts a file unit number
 C as an argument.
 C
       FUNCTION COUNTL(NMUNIT)
-      INTEGER COUNTL
+      INTEGER*8 COUNTL
       INTEGER NMUNIT
 C
       REWIND(NMUNIT)
@@ -375,21 +379,22 @@ C returning the mean. The function accepts the number of elements
 C and the array as arguments.
 C
       FUNCTION AVG(LINNUM, ARRAY)
-      REAL AVG
-      INTEGER LINNUM
+      REAL*8 AVG
+      INTEGER*8 LINNUM
       INTEGER ARRAY(LINNUM)
 C
 C LOCAL VARIABLES
 C
-      REAL SUM
+      REAL*8 SUM
 C
-      INTEGER I
-      SUM = 0.0
+      INTEGER*8 I
+C
+      SUM = 0.0D0
       DO I = 1, LINNUM
-         SUM = SUM + ARRAY(I)
+         SUM = SUM + DBLE(ARRAY(I))
       END DO
 C
-      AVG = SUM / LINNUM
+      AVG = SUM / DBLE(LINNUM)
 C
       RETURN
       END
@@ -402,30 +407,30 @@ C The code roots the variance to calculate and return stedv. It
 C accepts the number of elements and the array as arguments.
 C
       FUNCTION STDEV(LINNUM, ARRAY)
-      REAL STDEV
-      INTEGER LINNUM
+      REAL*8 STDEV
+      INTEGER*8 LINNUM
       INTEGER ARRAY(LINNUM)
 C
 C LOCAL VARIABLES
 C
-      REAL SUM
-      REAL MEAN
-      REAL VAR
+      REAL*8 SUM
+      REAL*8 MEAN
+      REAL*8 VAR
 C
-      INTEGER I
-      SUM = 0.0
+C FUNCTION DECLARATIONS
+C
+      REAL*8 AVG
+C
+      INTEGER*8 I
+C
+      MEAN = AVG(LINNUM, ARRAY)
+
+      SUM = 0.0D0
       DO I = 1, LINNUM
-         SUM = SUM + ARRAY(I)
+         SUM = SUM + ((DBLE(ARRAY(I)) - MEAN) * (DBLE(ARRAY(I)) - MEAN))
       END DO
 
-      MEAN = SUM / LINNUM
-
-      SUM = 0.0
-      DO I = 1, LINNUM
-         SUM = SUM + (ARRAY(I) - MEAN)**2
-      END DO
-
-      VAR = SUM / (LINNUM - 1)
+      VAR = SUM / DBLE(LINNUM - 1)
 C
       STDEV = SQRT(VAR)
 C

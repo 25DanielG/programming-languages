@@ -181,7 +181,7 @@ C
 
       SUM = 0.0
       DO I = 1, LINNUM
-         SUM = SUM + (ARRAY(I) - MEAN)**2
+         SUM = SUM + ((ARRAY(I) - MEAN) * (ARRAY(I) - MEAN))
       END DO
 
       VAR = SUM / (LINNUM - 1)
