@@ -328,7 +328,7 @@ C
 C
       WRITE(*,*)
       DO I = 1, BINUM
-         NHASH = INT(REAL(HISTA(I)) / REAL(BINMAX) * MAXWID)
+         NHASH = INT(DBLE(HISTA(I)) / DBLE(BINMAX) * DBLE(MAXWID))
          WRITE(*,1210, ADVANCE='NO') I-1
 1210     FORMAT(I4, 2X)
          DO J = 1, NHASH
@@ -338,7 +338,7 @@ C
          WRITE(*,*)
       END DO
 
-      WRITE(*,1230) 'REP: # =', REAL(BINMAX) / MAXWID
+      WRITE(*,1230) 'REP: # =', DBLE(BINMAX) / DBLE(MAXWID)
 1230  FORMAT(A, ES12.5)
 C
       RETURN
