@@ -1,4 +1,4 @@
-      PROGRAM HISTO
+      PROGRAM COMM
 C
 C Daniel Gergov
 C April 2, 2025
@@ -10,7 +10,7 @@ C the mean, the standard deviation, minimum value, and maximum
 C value. It then creates and outputs a histogram of the second
 C array of data.
 C
-C gfortran -Wall histo.for
+C gfortran -Wall comm.for
 C
 
 C
