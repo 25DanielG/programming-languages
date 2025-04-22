@@ -1,9 +1,18 @@
+/**
+ * @file fread.c
+ * @author Daniel Gergov
+ * @brief The following file contains a helper function to read a file
+ * into memory. The code uses functions to open, read, and close
+ * the file. The function returns a pointer to the memory
+ * containing the file contents. The caller of the file read function
+ * is responsible for freeing the buffer after use.
+ * @date 2025-04-22
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include "atcs.h"
 
@@ -13,8 +22,11 @@ off_t flength(int unit);
 char* fload(char* fname);
 
 /**
- * @brief 
- * 
+ * @brief the flength function returns the length of a file
+ * in bytes. The function uses the lseek function to get the
+ * current position in the file, then it seeks to the end of
+ * the file to get the length, and it seeks back
+ * to the original position.
  * @precondition the unit parameter must be a valid file handle
  * @param unit the file handle of the file to get the length of
  * @return off_t the length of the file in bytes
@@ -41,6 +53,16 @@ off_t flength(int unit)
     return len;
     }
 
+/**
+ * @brief the fload function loads a file into memory. The function
+ * opens the file, gets the length of the file, allocates memory
+ * for the file contents, reads the file into memory, and closes
+ * the file. The function returns a pointer to the memory
+ * containing the file contents.
+ * @param fname the name of the file to open
+ * @return char* a pointer to the buffer containing the file contents
+ * @postcondition the caller is responsible for freeing the buffer
+ */
 char* fload(char* fname)
     {
     int suc = 1;
@@ -103,6 +125,12 @@ char* fload(char* fname)
     return buffer;
     }
 
+/**
+ * @brief the main function is the starting point of the program.
+ * The function calls the fload function to load a file into memory.
+ * @param argc the number of arguments
+ * @param argv the array of arguments
+ */
 int main(int argc, char* argv[])
     {
     char* fname = NULL;
