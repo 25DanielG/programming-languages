@@ -15,14 +15,14 @@ struct INTRO
     {
     char chunkID[4]; // has "RIFF"
     DWORD chunkSize;
-    char format[4]; // has "WAVE"
+    char format[4];  // has "WAVE"
     };
 
 struct SBCHUNK1
     {
     char subchunk1ID[4]; // has "fmt "
     DWORD subchunk1Size;
-    WORD audioFormat; // pcm = 1
+    WORD audioFormat;    // pcm = 1
     WORD numChannels;
     DWORD sampleRate;
     DWORD byteRate;
@@ -34,7 +34,7 @@ struct SBCHUNK2
     {
     char subchunk2ID[4]; // has "data"
     DWORD subchunk2Size;
-    BYTE data[4]; // more data can extend the 4 bytes w/ malloc
+    BYTE data[4];        // more data can extend the 4 bytes w/ malloc
     };
 
 struct WAV
