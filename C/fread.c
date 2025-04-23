@@ -4,8 +4,7 @@
  * @brief The following file contains a helper function to read a file
  * into memory. The code uses functions to open, read, and close
  * the file. The function returns a pointer to the memory
- * containing the file contents. The caller of the file read function
- * is responsible for freeing the buffer after use.
+ * containing the file contents.
  * @date 2025-04-22
  */
 #include <stdio.h>
@@ -28,6 +27,9 @@ char* fload(char* fname);
  * current position in the file, then it seeks to the end of
  * the file to get the length, and it seeks back
  * to the original position.
+ * 
+ * gcc -Wall fread.c
+ * 
  * @precondition the unit parameter must be a valid file handle
  * @param unit the file handle of the file to get the length of
  * @return off_t the length of the file in bytes
@@ -36,12 +38,12 @@ char* fload(char* fname);
 off_t flength(int unit)
     {
     errno = 0;
-    off_t pos = lseek(unit, 0, SEEK_CUR);
-    off_t len = -1;
+    off_t pos = lseek(unit, (off_t)0, SEEK_CUR);
+    off_t len = (off_t)-1;
 
     if (errno == 0)
         {
-        len = lseek(unit, 0, SEEK_END);
+        len = lseek(unit, (off_t)0, SEEK_END);
         }
     if (errno == 0)
         {
@@ -123,6 +125,7 @@ char* fload(char* fname)
         {
         close(unit);
         }
+
     return buffer;
     }
 
