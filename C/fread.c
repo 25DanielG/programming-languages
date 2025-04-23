@@ -17,6 +17,7 @@
 #include "atcs.h"
 
 #define DEFAULT_FILENAME "test.txt"
+#define EXPECTED_ARGS (2)
 
 off_t flength(int unit);
 char* fload(char* fname);
@@ -53,7 +54,7 @@ off_t flength(int unit)
         {
         fprintf(stderr, "Error when getting file length\n");
         }
-    return len;
+    return(len);
     }
 
 /**
@@ -68,7 +69,7 @@ off_t flength(int unit)
  */
 char* fload(char* fname)
     {
-    int suc = 1;
+    int suc = TRUE;
     int unit = -1;
     off_t len;
     char* buffer = NULL;
@@ -77,7 +78,7 @@ char* fload(char* fname)
     if (fname == NULL)
         {
         fprintf(stderr, "Error: filename is null\n");
-        suc = 0;
+        suc = FALSE;
         }
     
     if (suc)
@@ -85,7 +86,7 @@ char* fload(char* fname)
         unit = open(fname, O_RDONLY | O_BINARY);
         if (unit == -1)
             {
-            suc = 0;
+            suc = FALSE;
             fprintf(stderr, "Error when opening file: %s\n", fname);
             }
         }
@@ -95,7 +96,7 @@ char* fload(char* fname)
         len = flength(unit);
         if (len <= 0)
             {
-            suc = 0;
+            suc = FALSE;
             fprintf(stderr, "Error when retrieving file length: %s\n", fname);
             }
         }
@@ -105,7 +106,7 @@ char* fload(char* fname)
         buffer = (char*)malloc((size_t)len);
         if (buffer == NULL)
             {
-            suc = 0;
+            suc = FALSE;
             fprintf(stderr, "Error at malloc for file buffer: %s, with length %lld bytes\n", fname, (off_t)len);
             }
         }
@@ -126,7 +127,7 @@ char* fload(char* fname)
         close(unit);
         }
 
-    return buffer;
+    return(buffer);
     }
 
 /**
@@ -138,7 +139,9 @@ char* fload(char* fname)
 int main(int argc, char* argv[])
     {
     char* fname = NULL;
-    if (argc != 2)
+    char* fcontent = NULL;
+
+    if (argc != EXPECTED_ARGS)
         {
         fname = DEFAULT_FILENAME;
         printf("No filename given in arguments, proceeding with <%s>\n", DEFAULT_FILENAME);
@@ -148,7 +151,7 @@ int main(int argc, char* argv[])
         fname = argv[1];
         }
 
-    char* fcontent = fload(fname);
+    fcontent = fload(fname);
 
     if (fcontent == NULL)
         {
