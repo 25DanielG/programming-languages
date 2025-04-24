@@ -5,6 +5,9 @@
  * into memory. The code uses functions to open, read, and close
  * the file. The function returns a pointer to the memory
  * containing the file contents.
+ * 
+ * gcc -Wall fread.c
+ * 
  * @date 2025-04-22
  */
 #include <stdio.h>
@@ -19,8 +22,35 @@
 #define DEFAULT_FILENAME "test.txt"
 #define EXPECTED_ARGS (2)
 
+void silentFail(int* suc, const char *msg, const char *fname, const off_t *len);
 off_t flength(int unit);
 char* fload(char* fname);
+
+/**
+ * @brief The following function is used to fail silently. The
+ * function prints a given error message and sets a success pointer
+ * to false.
+ * 
+ * @param suc a pointer to a success variable
+ * @param msg the error message to print
+ * @param fname the name of the file that caused the error
+ * @param len the length of the file that caused the error
+ */
+void silentFail(int* suc, const char *msg, const char *fname, const off_t *len)
+    {
+    *suc = FALSE;
+    fprintf(stderr, "%s ", msg);
+    if (fname != NULL)
+        {
+        fprintf(stderr, "file: %s ", fname);
+        }
+    if (len != NULL)
+        {
+        fprintf(stderr, "length: %lld ", (long long)*len);
+        }
+    fprintf(stderr, "\n");
+    return;
+    }
 
 /**
  * @brief the flength function returns the length of a file
@@ -28,8 +58,6 @@ char* fload(char* fname);
  * current position in the file, then it seeks to the end of
  * the file to get the length, and it seeks back
  * to the original position.
- * 
- * gcc -Wall fread.c
  * 
  * @precondition the unit parameter must be a valid file handle
  * @param unit the file handle of the file to get the length of
@@ -75,40 +103,24 @@ char* fload(char* fname)
     char* buffer = NULL;
     ssize_t bytes;
 
-    if (fname == NULL)
-        {
-        fprintf(stderr, "Error: filename is null\n");
-        suc = FALSE;
-        }
+    if (fname == NULL) silentFail(&suc, "Error: filename is null", NULL, NULL);
     
     if (suc)
         {
         unit = open(fname, O_RDONLY | O_BINARY);
-        if (unit == -1)
-            {
-            suc = FALSE;
-            fprintf(stderr, "Error when opening file: %s\n", fname);
-            }
+        if (unit == -1) silentFail(&suc, "Error when opening file", fname, NULL);
         }
         
     if (suc)
         {
         len = flength(unit);
-        if (len <= 0)
-            {
-            suc = FALSE;
-            fprintf(stderr, "Error when retrieving file length: %s\n", fname);
-            }
+        if (len <= 0) silentFail(&suc, "Error when retrieving file length", fname, NULL);
         }
     
     if (suc)
         {
         buffer = (char*)malloc((size_t)len);
-        if (buffer == NULL)
-            {
-            suc = FALSE;
-            fprintf(stderr, "Error at malloc for file buffer: %s, with length %lld bytes\n", fname, (off_t)len);
-            }
+        if (buffer == NULL) silentFail(&suc, "Error at malloc for file buffer", fname, &len);
         }
     
     if (suc)
@@ -155,11 +167,11 @@ int main(int argc, char* argv[])
 
     if (fcontent == NULL)
         {
-        fprintf(stderr, "Failed to load file into memory.\n");
+        fprintf(stderr, "Failed to load file into memory\n");
         }
     else
         {
-        printf("Loaded the file successfully.\n");
+        printf("Loaded the file successfully\n");
         free(fcontent);
         }
     exit(0);
