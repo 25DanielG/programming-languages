@@ -150,8 +150,8 @@ char* fload(char* fname)
  */
 int main(int argc, char* argv[])
     {
-    char* fname = NULL;
-    char* fcontent = NULL;
+    char *fname = NULL;
+    char *fcontent = NULL;
 
     if (argc != EXPECTED_ARGS)
         {
