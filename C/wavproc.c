@@ -4,7 +4,10 @@
  * @brief The following file contains a helper function to read a file
  * into memory. The code uses functions to open, read, and close
  * the file. The function returns a pointer to the memory
- * containing the file contents.
+ * containing the file contents. The file then overlays the wave file structure
+ * onto the memory. The program checks if the file is a valid wave file
+ * and if the subformat is PCM. The program also checks if the fields
+ * are correct and calculates any missing fields.
  * 
  * gcc -Wall wavproc.c
  * 
@@ -68,6 +71,9 @@ typedef struct ERR err;
 void silentFail(const char *msg, const char *fname, const off_t *len);
 off_t flength(int unit);
 char* fload(char* fname, off_t *length);
+err enforceWav(wav *wav);
+err enforceSubformat(wav *wav);
+void calculateFields(wav *wav, off_t *length);
 
 /**
  * @brief The following function is used to fail silently. The
@@ -196,6 +202,15 @@ char* fload(char* fname, off_t *length)
     return(pmem);
     }
 
+/**
+ * @brief The enforceWav function checks if the wav file is valid.
+ * The function checks if the file is a valid wav file by checking
+ * the chunkID, format, subchunk1ID, and subchunk2ID and their expected values.
+ * The function returns an error code and a message if the file is not valid.
+ * 
+ * @param wav a pointer to a wav object
+ * @return err a struct containing an error code and a message
+ */
 err enforceWav(wav *wav)
     {
     err result;
@@ -235,6 +250,14 @@ err enforceWav(wav *wav)
     return(result);
     }
 
+/**
+ * @brief The enforceSubformat function checks if the wav file is a valid PCM file.
+ * The function checks if the audioFormat is PCM and if the subchunk1Size is 16.
+ * The function returns an error code and a message if the file is not valid.
+ * 
+ * @param wav a pointer to a wav object
+ * @return err a struct containing an error code and a message
+ */
 err enforceSubformat(wav *wav)
     {
     err result;
@@ -263,10 +286,15 @@ err enforceSubformat(wav *wav)
     }
 
 /**
- * @brief 
+ * @brief The calculateFields function calculates the missing fields
+ * in the wav file. The function calculates the blockAlign, byteRate,
+ * subchunk2Size, and chunkSize fields. The function checks if the
+ * fields are correct and fixes them if they are 0. If the fields are not
+ * 0 but not what the function expects, the function prints a warning message but
+ * does not correct the values.
  * 
- * @param wav 
- * @param length
+ * @param wav a pointer to a valid non-null wav object
+ * @param length a pointer to an off_t object containing the length of the file
  * @precondition wav is a valid pointer to a wav object and length is a valid pointer to an off_t object containing the length of the file
  */
 void calculateFields(wav *wav, off_t *length)
@@ -316,11 +344,17 @@ void calculateFields(wav *wav, off_t *length)
             wav->intro.chunkSize = chunkSize;
             }
         }
+    
+    return;
     }
 
 /**
  * @brief the main function is the starting point of the program.
  * The function calls the fload function to load a file into memory.
+ * The function checks if the file is a valid wav file and if the
+ * subformat is PCM. The function also checks if the fields are correct
+ * and calculates any missing fields.
+ * 
  * @param argc the number of arguments
  * @param argv the array of arguments
  */
