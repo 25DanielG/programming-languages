@@ -22,23 +22,20 @@
 #define DEFAULT_FILENAME "test.txt"
 #define EXPECTED_ARGS (2)
 
-void silentFail(int* suc, const char *msg, const char *fname, const off_t *len);
+void silentFail(const char *msg, const char *fname, const off_t *len);
 off_t flength(int unit);
 char* fload(char* fname);
 
 /**
  * @brief The following function is used to fail silently. The
- * function prints a given error message and sets a success pointer
- * to false.
+ * function prints a given error message.
  * 
- * @param suc a pointer to a success variable
  * @param msg the error message to print
  * @param fname the name of the file that caused the error
  * @param len the length of the file that caused the error
  */
-void silentFail(int* suc, const char *msg, const char *fname, const off_t *len)
+void silentFail(const char *msg, const char *fname, const off_t *len)
     {
-    *suc = FALSE;
     fprintf(stderr, "%s ", msg);
     if (fname != NULL)
         {
@@ -66,21 +63,27 @@ void silentFail(int* suc, const char *msg, const char *fname, const off_t *len)
  */
 off_t flength(int unit)
     {
-    errno = 0;
     off_t pos = lseek(unit, (off_t)0, SEEK_CUR);
     off_t len = (off_t)-1;
 
-    if (errno == 0)
+    if (pos != (off_t)-1)
         {
         len = lseek(unit, (off_t)0, SEEK_END);
+        if (len != (off_t)-1)
+            {
+            if (lseek(unit, pos, SEEK_SET) == (off_t)-1)
+                {
+                fprintf(stderr, "Error when resetting file position\n");
+                }
+            }
+        else
+            {
+            fprintf(stderr, "Error when seeking to end of file\n");
+            }
         }
-    if (errno == 0)
+    else
         {
-        lseek(unit, pos, SEEK_SET);
-        }
-    if (errno != 0)
-        {
-        fprintf(stderr, "Error when getting file length\n");
+        fprintf(stderr, "Error when getting current file position\n");
         }
     return(len);
     }
@@ -97,46 +100,49 @@ off_t flength(int unit)
  */
 char* fload(char* fname)
     {
-    int suc = TRUE;
     int unit = -1;
     off_t len;
     char* buffer = NULL;
     ssize_t bytes;
 
-    if (fname == NULL) silentFail(&suc, "Error: filename is null", NULL, NULL);
-    
-    if (suc)
+    if (fname != NULL)
         {
         unit = open(fname, O_RDONLY | O_BINARY);
-        if (unit == -1) silentFail(&suc, "Error when opening file", fname, NULL);
-        }
-        
-    if (suc)
-        {
-        len = flength(unit);
-        if (len <= 0) silentFail(&suc, "Error when retrieving file length", fname, NULL);
-        }
-    
-    if (suc)
-        {
-        buffer = (char*)malloc((size_t)len);
-        if (buffer == NULL) silentFail(&suc, "Error at malloc for file buffer", fname, &len);
-        }
-    
-    if (suc)
-        {
-        bytes = read(unit, buffer, len);
-        if ((off_t)bytes != len)
+        if (unit != -1)
             {
-            fprintf(stderr, "Error during file reading: %s, with length %lld bytes\n", fname, (off_t)len);
-            free(buffer);
-            buffer = NULL;
+            len = flength(unit);
+            if (len > 0)
+                {
+                buffer = (char*)malloc((size_t)len);
+                if (buffer != NULL)
+                    {
+                    bytes = read(unit, buffer, len);
+                    if ((off_t)bytes != len)
+                        {
+                        fprintf(stderr, "Error during file reading: %s, with length %lld bytes\n", fname, (off_t)len);
+                        free(buffer);
+                        buffer = NULL;
+                        }
+                    }
+                else
+                    {
+                    silentFail("Error at malloc for file buffer", fname, &len);
+                    }
+                }
+            else
+                {
+                silentFail("Error when retrieving file length", fname, NULL);
+                }
+            close(unit);
+            }
+        else
+            {
+            silentFail("Error when opening file", fname, NULL);
             }
         }
-    
-    if (unit != -1)
+    else
         {
-        close(unit);
+        silentFail("Error: filename is null", NULL, NULL);
         }
 
     return(buffer);
