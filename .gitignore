@@ -2,3 +2,4 @@ a.out
 fortran/Geiger01-62.txt
 .DS_Store
 .vscode/
+*.wav
