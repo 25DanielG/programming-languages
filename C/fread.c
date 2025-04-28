@@ -73,17 +73,17 @@ off_t flength(int unit)
             {
             if (lseek(unit, pos, SEEK_SET) == (off_t)-1)
                 {
-                fprintf(stderr, "Error when resetting file position\n");
+                silentFail("Error when resetting file position", NULL, NULL);
                 }
             }
         else
             {
-            fprintf(stderr, "Error when seeking to end of file\n");
+            silentFail("Error when seeking to end of file", NULL, NULL);
             }
         }
     else
         {
-        fprintf(stderr, "Error when getting current file position\n");
+        silentFail("Error when getting current file position", NULL, NULL);
         }
     return(len);
     }
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
 
     if (fcontent == NULL)
         {
-        fprintf(stderr, "Failed to load file into memory\n");
+        silentFail("Failed to load file into memory", NULL, NULL);
         }
     else
         {
