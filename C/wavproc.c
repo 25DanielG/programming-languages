@@ -26,6 +26,12 @@
 #define DEFAULT_FILENAME "test.txt"
 #define EXPECTED_ARGS (2)
 
+struct MEM
+    {
+    char *pmem; // pointer to memory
+    off_t *len; // length of the file
+    };
+
 struct ERR
     {
     int err; // 0 or 1
@@ -67,6 +73,7 @@ struct WAV
 
 typedef struct WAV wav;
 typedef struct ERR err;
+typedef struct MEM mem;
 
 void silentFail(const char *msg, const char *fname, const off_t *len);
 off_t flength(int unit);
@@ -74,6 +81,7 @@ char* fload(char* fname, off_t *length);
 err enforceWav(wav *wav);
 err enforceSubformat(wav *wav);
 void calculateFields(wav *wav, off_t *length);
+int validateWav(wav *sound);
 
 /**
  * @brief The following function is used to fail silently. The
@@ -112,8 +120,10 @@ void silentFail(const char *msg, const char *fname, const off_t *len)
  */
 off_t flength(int unit)
     {
-    off_t pos = lseek(unit, (off_t)0, SEEK_CUR);
+    off_t pos;
     off_t len = (off_t)-1;
+
+    pos = lseek(unit, (off_t)0, SEEK_CUR);
 
     if (pos != (off_t)-1)
         {
@@ -299,11 +309,17 @@ err enforceSubformat(wav *wav)
  */
 void calculateFields(wav *wav, off_t *length)
     {
-    WORD blockAlign = wav->subchunk1.numChannels * wav->subchunk1.bitsPerSample / ((WORD)8);
-    DWORD byteRate = wav->subchunk1.sampleRate * ((DWORD)blockAlign);
-    DWORD header = ((DWORD)sizeof(struct INTRO)) + ((DWORD)sizeof(struct SBCHUNK1)) + ((DWORD)8);
-    DWORD subchunk2Size = (DWORD)(*length) - header;
-    DWORD chunkSize = ((DWORD)4) + ((DWORD)8 + wav->subchunk1.subchunk1Size) + ((DWORD)8 + subchunk2Size);
+    WORD blockAlign;
+    DWORD byteRate;
+    DWORD header;
+    DWORD subchunk2Size;
+    DWORD chunkSize;
+
+    blockAlign = wav->subchunk1.numChannels * wav->subchunk1.bitsPerSample / ((WORD)8);
+    byteRate = wav->subchunk1.sampleRate * ((DWORD)blockAlign);
+    header = ((DWORD)sizeof(struct INTRO)) + ((DWORD)sizeof(struct SBCHUNK1)) + ((DWORD)8);
+    subchunk2Size = (DWORD)(*length) - header;
+    chunkSize = ((DWORD)4) + ((DWORD)8 + wav->subchunk1.subchunk1Size) + ((DWORD)8 + subchunk2Size);
 
     if (wav->subchunk1.blockAlign != blockAlign)
         {
@@ -349,6 +365,40 @@ void calculateFields(wav *wav, off_t *length)
     }
 
 /**
+ * @brief The validateWav function checks if the wav file is valid.
+ * The function checks if the file is a valid wav file by enforcing
+ * the wav format and the subformat, thus returning an appropriate boolean.
+ * 
+ * @param sound the wav object to check
+ * @return int whether the wav file is valid or not
+ */
+int validateWav(wav *sound)
+    {
+    err loaded, processed;
+    int valid = FALSE;
+
+    loaded = enforceWav(sound);
+    if (loaded.err)
+        {
+        fprintf(stderr, "Error loading WAV file: %s\n", loaded.msg);
+        }
+    else
+        {
+        processed = enforceSubformat(sound);
+        if (processed.err)
+            {
+            fprintf(stderr, "Error processing WAV file: %s\n", processed.msg);
+            }
+        else
+            {
+            valid = TRUE;
+            }
+        }
+    
+    return(valid);
+    }
+
+/**
  * @brief the main function is the starting point of the program.
  * The function calls the fload function to load a file into memory.
  * The function checks if the file is a valid wav file and if the
@@ -361,11 +411,9 @@ void calculateFields(wav *wav, off_t *length)
 int main(int argc, char* argv[])
     {
     char *fname = NULL;
-    char *fcontent = NULL;
+    mem fcontent;
     wav *sound = NULL;
-    err loaded, processed;
-    off_t *len;
-    int valid = FALSE;
+    int allocatedLength = FALSE, allocatedMem = FALSE;
 
     if (argc != EXPECTED_ARGS)
         {
@@ -377,50 +425,36 @@ int main(int argc, char* argv[])
         fname = argv[1];
         }
 
-    len = (off_t *)malloc(sizeof(off_t));
-    fcontent = fload(fname, len);
-    if (len == NULL || *len <= 0)
+    fcontent.pmem = NULL;
+    fcontent.len = (off_t *)malloc(sizeof(off_t));
+    fcontent.pmem = fload(fname, fcontent.len);
+    if (fcontent.len == NULL || *(fcontent.len) <= 0)
         {
         silentFail("Error retrieving file length, ", fname, NULL);
         }
-
-    if (fcontent == NULL)
+    else
+        {
+        allocatedLength = TRUE;
+        }
+    
+    if (fcontent.pmem == NULL)
         {
         silentFail("Failed to load file into memory", NULL, NULL);
         }
     else
         {
         printf("Loaded the file successfully\n");
+        allocatedMem = TRUE;
         }
     
-    sound = (wav *)fcontent;
-    loaded = enforceWav(sound);
-    if (loaded.err)
-        {
-        fprintf(stderr, "Error loading WAV file: %s\n", loaded.msg);
-        free(fcontent);
-        fcontent = NULL;
-        }
-    else
-        {
-        processed = enforceSubformat(sound);
-        if (processed.err)
-            {
-            fprintf(stderr, "Error processing WAV file: %s\n", processed.msg);
-            free(fcontent);
-            fcontent = NULL;
-            }
-        else
-            {
-            valid = TRUE;
-            }
-        }
-    
-    if (valid) // proceed with file processing and calculating uncalculated fields
+    sound = (wav *)fcontent.pmem;
+    if (validateWav(sound))
         {
         printf("WAV file is valid\n");
-        calculateFields(sound, len);
+        calculateFields(sound, fcontent.len);
         }
     
+    if (allocatedMem) free(fcontent.pmem);
+    if (allocatedLength) free(fcontent.len);
     exit(0);
     }
