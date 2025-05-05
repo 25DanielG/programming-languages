@@ -183,7 +183,7 @@ char* fload(char* fname, off_t *length)
             len = flength(unit);
             if (len > 0)
                 {
-                    pmem = (char*)malloc((size_t)len);
+                pmem = (char*)malloc((size_t)len);
                 if (pmem != NULL)
                     {
                     bytes = read(unit, pmem, len);
@@ -634,7 +634,7 @@ int main(int argc, char* argv[])
         }
     
     if (allocatedMem) free(fcontent.pmem);
-    
+
     if (allocatedLength) free(fcontent.len);
     exit(0);
     }
