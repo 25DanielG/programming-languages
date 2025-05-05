@@ -93,6 +93,7 @@ int validateWav(wav *sound);
 int saveWav(wav *sound, off_t len, const char *fname);
 void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, int *fargs);
 void sampleRate(wav *sound, int rate);
+void reverseSound(wav *sound);
 void applyFilter(wav *sound, int filter, int length, int arg);
 
 /**
@@ -479,9 +480,13 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, in
             }
         }
     
-    if (*filter == FILTER1) fargc = 1;
-    
-    if (argc == EXPECTED_ARGS + fargc)
+    if (*filter == FILTER1) fargc = 1; // filter logic for which filters have arguments
+
+    if (fargc == 0)
+        {
+        *fargs = 0;
+        }
+    else if (argc == EXPECTED_ARGS + fargc && argc > EXPECTED_ARGS)
         {
         *fargs = atoi(argv[4]);
         if (*fargs <= 0)
@@ -495,9 +500,8 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, in
         fprintf(stderr, "Invalid filter arguments for filter %d, proceeding with default filter argument: %d\n", *filter, DEFAULT_FILTER1);
         *fargs = DEFAULT_FILTER1;
         }
-    
-    printf("File: %s, filter: %d, out: %s\n", *fname, *filter, *out);
-    
+
+    printf("File: %s, filter: %d, out: %s\n", *fname, *filter, *out);    
     return;
     }
 
@@ -511,19 +515,64 @@ void sampleRate(wav *sound, int rate)
     byteRate = sound->subchunk1.sampleRate * ((DWORD)blockAlign);
 
     sound->subchunk1.byteRate = byteRate;
+
+    printf("Sample rate changed to %u\n", sound->subchunk1.sampleRate);
+
+    return;
+    }
+
+void reverseSound(wav *sound)
+    {
+    WORD bpsample, channels, j;
+    DWORD sb2size, bsize, nBlocks, i;
+    BYTE *data, *start, *end;
+    BYTE tmp;
+
+    bpsample = sound->subchunk1.bitsPerSample;
+    channels = sound->subchunk1.numChannels;
+    sb2size = sound->subchunk2.subchunk2Size;
+    bsize = (bpsample / 8) * channels;
+
+    if (bsize == 0)
+        {
+        fprintf(stderr, "block size is 0\n");
+        }
+    else
+        {
+        data = sound->subchunk2.data;
+        nBlocks = sb2size / bsize;
     
+        for (i = 0; i < nBlocks / 2; ++i)
+            {
+            start = data + i * bsize;
+            end = data + (nBlocks - 1 - i) * bsize;
+    
+            for (j = 0; j < bsize; ++j)
+                {
+                tmp = start[j];
+                start[j] = end[j];
+                end[j] = tmp;
+                }
+            }
+    
+        printf("Reversed %lu blocks of audio\n", (unsigned long)nBlocks);
+        }
+
     return;
     }
 
 void applyFilter(wav *sound, int filter, int length, int arg)
     {
-    printf("Applying filter %d to the given wav with arg %d\n", filter, arg);
     switch (filter)
         {
         case 1:
             sampleRate(sound, arg);
             break;
         
+        case 2:
+            reverseSound(sound);
+            break;
+
         default:
             break;
         }
@@ -562,7 +611,7 @@ int main(int argc, char* argv[])
         {
         allocatedLength = TRUE;
         }
-    
+
     if (fcontent.pmem == NULL)
         {
         silentFail("Failed to load file into memory", NULL, NULL);
