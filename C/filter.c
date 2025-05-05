@@ -92,6 +92,8 @@ void calculateFields(wav *wav, off_t *length);
 int validateWav(wav *sound);
 int saveWav(wav *sound, off_t len, const char *fname);
 void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, int *fargs);
+void sampleRate(wav *sound, int rate);
+void applyFilter(wav *sound, int filter, int length, int arg);
 
 /**
  * @brief The following function is used to fail silently. The
