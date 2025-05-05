@@ -107,6 +107,7 @@ void silentFail(const char *msg, const char *fname, const off_t *len)
         {
         fprintf(stderr, "file: %s ", fname);
         }
+    
     if (len != NULL)
         {
         fprintf(stderr, "length: %lld ", (long long)*len);
@@ -446,6 +447,7 @@ int saveWav(struct WAV *sound, off_t len, const char *fname)
 void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, int *fargs)
     {
     int fargc = 0;
+
     if (argc < EXPECTED_ARGS)
         {
         fprintf(stderr, "Usage: %s <filename> <out_filename> <filter> <filter_args>\n", argv[0]);
@@ -464,11 +466,13 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, in
             fprintf(stderr, "Invalid filename, proceeding with default filename: %s\n", DEFAULT_FILENAME);
             *fname = DEFAULT_FILENAME;
             }
+
         if (*out == NULL)
             {
             fprintf(stderr, "Invalid output filename, proceeding with default output filename: %s\n", OUT_FILENAME);
             *out = OUT_FILENAME;
             }
+
         if (*filter <= 0 || *filter > NUM_FILTERS)
             {
             fprintf(stderr, "Invalid filter, proceeding with default filter: %d\n", DEFAULT_FILTER);
@@ -485,6 +489,7 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, in
     else if (argc == EXPECTED_ARGS + fargc && argc > EXPECTED_ARGS)
         {
         *fargs = atoi(argv[4]);
+
         if (*fargs <= 0)
             {
             fprintf(stderr, "Invalid filter argument, proceeding with default filter argument: %d\n", DEFAULT_FILTER1);
@@ -599,6 +604,7 @@ int main(int argc, char* argv[])
     fcontent.pmem = NULL;
     fcontent.len = (off_t *)malloc(sizeof(off_t));
     fcontent.pmem = fload(fname, fcontent.len);
+
     if (fcontent.len == NULL || *(fcontent.len) <= 0)
         {
         silentFail("Error retrieving file length, ", fname, NULL);
@@ -619,6 +625,7 @@ int main(int argc, char* argv[])
         }
     
     sound = (struct WAV *)fcontent.pmem;
+
     if (validateWav(sound))
         {
         printf("WAV file is valid\n");
@@ -627,6 +634,7 @@ int main(int argc, char* argv[])
         }
     
     if (allocatedMem) free(fcontent.pmem);
+    
     if (allocatedLength) free(fcontent.len);
     exit(0);
     }

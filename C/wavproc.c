@@ -94,6 +94,7 @@ void silentFail(const char *msg, const char *fname, const off_t *len)
         {
         fprintf(stderr, "file: %s ", fname);
         }
+    
     if (len != NULL)
         {
         fprintf(stderr, "length: %lld ", (long long)*len);
@@ -424,6 +425,7 @@ int main(int argc, char* argv[])
     fcontent.pmem = NULL;
     fcontent.len = (off_t *)malloc(sizeof(off_t));
     fcontent.pmem = fload(fname, fcontent.len);
+
     if (fcontent.len == NULL || *(fcontent.len) <= 0)
         {
         silentFail("Error retrieving file length, ", fname, NULL);
@@ -444,6 +446,7 @@ int main(int argc, char* argv[])
         }
     
     sound = (struct WAV *)fcontent.pmem;
+
     if (validateWav(sound))
         {
         printf("WAV file is valid\n");
@@ -451,6 +454,7 @@ int main(int argc, char* argv[])
         }
     
     if (allocatedMem) free(fcontent.pmem);
+    
     if (allocatedLength) free(fcontent.len);
     exit(0);
     }
