@@ -79,22 +79,18 @@ struct WAV
     struct SBCHUNK2 subchunk2;
     };
 
-typedef struct WAV wav;
-typedef struct ERR err;
-typedef struct MEM mem;
-
 void silentFail(const char *msg, const char *fname, const off_t *len);
 off_t flength(int unit);
 char* fload(char* fname, off_t *length);
-err enforceWav(wav *wav);
-err enforceSubformat(wav *wav);
-void calculateFields(wav *wav, off_t *length);
-int validateWav(wav *sound);
-int saveWav(wav *sound, off_t len, const char *fname);
+struct ERR enforceWav(struct WAV *wav);
+struct ERR enforceSubformat(struct WAV *wav);
+void calculateFields(struct WAV *wav, off_t *length);
+int validateWav(struct WAV *sound);
+int saveWav(struct WAV *sound, off_t len, const char *fname);
 void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, int *fargs);
-void sampleRate(wav *sound, int rate);
-void reverseSound(wav *sound);
-void applyFilter(wav *sound, int filter, int length, int arg);
+void sampleRate(struct WAV *sound, int rate);
+void reverseSound(struct WAV *sound);
+void applyFilter(struct WAV *sound, int filter, int length, int arg);
 
 /**
  * @brief The following function is used to fail silently. The
@@ -234,9 +230,9 @@ char* fload(char* fname, off_t *length)
  * @param wav a pointer to a wav object
  * @return err a struct containing an error code and a message
  */
-err enforceWav(wav *wav)
+struct ERR enforceWav(struct WAV *wav)
     {
-    err result;
+    struct ERR result;
     result.err = 0;
     result.msg = NULL;
 
@@ -281,9 +277,9 @@ err enforceWav(wav *wav)
  * @param wav a pointer to a wav object
  * @return err a struct containing an error code and a message
  */
-err enforceSubformat(wav *wav)
+struct ERR enforceSubformat(struct WAV *wav)
     {
-    err result;
+    struct ERR result;
     result.err = 0;
     result.msg = NULL;
 
@@ -320,7 +316,7 @@ err enforceSubformat(wav *wav)
  * @param length a pointer to an off_t object containing the length of the file
  * @precondition wav is a valid pointer to a wav object and length is a valid pointer to an off_t object containing the length of the file
  */
-void calculateFields(wav *wav, off_t *length)
+void calculateFields(struct WAV *wav, off_t *length)
     {
     WORD blockAlign;
     DWORD byteRate;
@@ -385,9 +381,9 @@ void calculateFields(wav *wav, off_t *length)
  * @param sound the wav object to check
  * @return int whether the wav file is valid or not
  */
-int validateWav(wav *sound)
+int validateWav(struct WAV *sound)
     {
-    err loaded, processed;
+    struct ERR loaded, processed;
     int valid = FALSE;
 
     loaded = enforceWav(sound);
@@ -411,7 +407,7 @@ int validateWav(wav *sound)
     return(valid);
     }
 
-int saveWav(wav *sound, off_t len, const char *fname)
+int saveWav(struct WAV *sound, off_t len, const char *fname)
     {
     int success = 0;
     int fd;
@@ -505,7 +501,7 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, in
     return;
     }
 
-void sampleRate(wav *sound, int rate)
+void sampleRate(struct WAV *sound, int rate)
     {
     DWORD byteRate;
     WORD blockAlign;
@@ -521,7 +517,7 @@ void sampleRate(wav *sound, int rate)
     return;
     }
 
-void reverseSound(wav *sound)
+void reverseSound(struct WAV *sound)
     {
     WORD bpsample, channels, j;
     DWORD sb2size, bsize, nBlocks, i;
@@ -561,7 +557,7 @@ void reverseSound(wav *sound)
     return;
     }
 
-void applyFilter(wav *sound, int filter, int length, int arg)
+void applyFilter(struct WAV *sound, int filter, int length, int arg)
     {
     switch (filter)
         {
@@ -594,8 +590,8 @@ void applyFilter(wav *sound, int filter, int length, int arg)
 int main(int argc, char* argv[])
     {
     char *fname = NULL, *out = NULL;
-    mem fcontent;
-    wav *sound = NULL;
+    struct MEM fcontent;
+    struct WAV *sound = NULL;
     int allocatedLength = FALSE, allocatedMem = FALSE, filter = 0, farg = 0;
     
     parseArgs(argc, argv, &fname, &filter, &out, &farg);
@@ -622,7 +618,7 @@ int main(int argc, char* argv[])
         allocatedMem = TRUE;
         }
     
-    sound = (wav *)fcontent.pmem;
+    sound = (struct WAV *)fcontent.pmem;
     if (validateWav(sound))
         {
         printf("WAV file is valid\n");
