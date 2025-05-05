@@ -221,37 +221,32 @@ char* fload(char* fname, off_t *length)
 struct ERR enforceWav(struct WAV *wav)
     {
     struct ERR result;
-    result.err = 0;
+    result.err = 1;
     result.msg = NULL;
 
     if (wav == NULL)
         {
-        result.err = 1;
         result.msg = "Wav object is null";
         }
-    
-    if (!result.err && strncmp(wav->intro.chunkID, "RIFF", 4) != 0)
+    else if (strncmp(wav->intro.chunkID, "RIFF", 4) != 0)
         {
-        result.err = 1;
         result.msg = "Wav intro chunkID is not 'RIFF'";
         }
-    
-    if (!result.err && strncmp(wav->intro.format, "WAVE", 4) != 0)
+    else if (strncmp(wav->intro.format, "WAVE", 4) != 0)
         {
-        result.err = 1;
         result.msg = "Wav intro format is not 'WAVE'";
         }
-    
-    if (!result.err && strncmp(wav->subchunk1.subchunk1ID, "fmt ", 4) != 0)
+    else if (strncmp(wav->subchunk1.subchunk1ID, "fmt ", 4) != 0)
         {
-        result.err = 1;
         result.msg = "Wav subchunk1ID is not 'fmt '";
         }
-    
-    if (!result.err && strncmp(wav->subchunk2.subchunk2ID, "data", 4) != 0)
+    else if (strncmp(wav->subchunk2.subchunk2ID, "data", 4) != 0)
         {
-        result.err = 1;
         result.msg = "Wav subchunk2ID is not 'data'";
+        }
+    else
+        {
+        result.err = 0;
         }
     
     return(result);
