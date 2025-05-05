@@ -263,25 +263,24 @@ struct ERR enforceWav(struct WAV *wav)
 struct ERR enforceSubformat(struct WAV *wav)
     {
     struct ERR result;
-    result.err = 0;
+    result.err = 1;
     result.msg = NULL;
 
     if (wav == NULL)
         {
-        result.err = 1;
         result.msg = "Wav object is null";
         }
-    
-    if (!result.err && wav->subchunk1.audioFormat != 1)
+    else if (!result.err && wav->subchunk1.audioFormat != 1)
         {
-        result.err = 1;
         result.msg = "Wav audioFormat is not PCM";
         }
-    
-    if (!result.err && wav->subchunk1.subchunk1Size != 16)
+    else if (!result.err && wav->subchunk1.subchunk1Size != 16)
         {
-        result.err = 1;
         result.msg = "Wav subchunk1Size is not 16";
+        }
+    else
+        {
+        result.err = 0;
         }
     
     return(result);
