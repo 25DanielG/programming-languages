@@ -43,6 +43,8 @@
 #define ARG3 (3)
 #define ARG4 (4)
 
+#define FIRST (0)
+
 #define FILTER1 (1)
 #define DEFAULT_FILTER1 ((double)40000.0)
 #define FILTER2 (2)
@@ -132,14 +134,14 @@ struct ERR enforceSubformat(struct WAV *wav);
 void calculateFields(struct WAV *wav, off_t *length);
 int validateWav(struct WAV *sound);
 int saveWav(struct WAV *sound, off_t len, const char *fname);
-void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, double *fargs);
+void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, double **fargs, int *num_fargs);
 void sampleRate(struct WAV *sound, int rate);
 void reverseSound(struct WAV *sound);
 int32_t readSample(BYTE *data, int index, int bpsample);
 void writeSample(int32_t left, int32_t right, BYTE *data, int index, DWORD frameSize, WORD bpsample);
 void audio8D(struct WAV *sound, double rps, off_t *length);
-void applyFilter(struct WAV *sound, int filter, char *out, off_t *length, double arg);
-double defaultFilter(int filter);
+void printFilterUsage();
+void applyFilter(struct WAV *sound, int filter, char *out, off_t *length, double *fargs, int num_fargs);
 
 /**
  * @brief The following function is used to fail silently. The
@@ -510,18 +512,21 @@ int saveWav(struct WAV *sound, off_t len, const char *fname)
  * @param filter the filter to apply
  * @param out the name of the output file
  * @param fargs the filter arguments
+ * @param num_args the number of filter arguments
  */
-void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, double *fargs)
+void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, double **fargs, int *num_fargs)
     {
-    double fargc = (double)0.0;
+    int i;
 
     if (argc < EXPECTED_ARGS)
         {
-        fprintf(stderr, "Usage: %s <filename> <out_filename> <filter> <filter_args>\n", argv[ARG0]);
+        printFilterUsage();
         printf("Proceeding with default arguments, file: %s, filter %d, out: %s\n", DEFAULT_FILENAME, DEFAULT_FILTER, OUT_FILENAME);
         *fname = DEFAULT_FILENAME;
         *out = OUT_FILENAME;
         *filter = DEFAULT_FILTER;
+        *fargs = NULL;
+        *num_fargs = 0;
         }
     else
         {
@@ -545,31 +550,29 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, do
             fprintf(stderr, "Invalid filter, proceeding with default filter: %d\n", DEFAULT_FILTER);
             *filter = DEFAULT_FILTER;
             }
-        }
-    
-    if (*filter == FILTER1 || *filter == FILTER3) fargc = 1; // filter logic for which filters have arguments
 
-    if (fargc == 0)
-        {
-        *fargs = (double)0.0;
+        *num_fargs = argc - EXPECTED_ARGS;
         }
-    else if (argc == EXPECTED_ARGS + fargc && argc > EXPECTED_ARGS)
-        {
-        *fargs = atof(argv[ARG4]);
 
-        if (*fargs <= 0)
+    if (*num_fargs > 0)
+        {
+        *fargs = (double *)malloc(sizeof(double) * (*num_fargs));
+        for (i = 0; i < *num_fargs; ++i)
             {
-            fprintf(stderr, "Invalid filter argument, proceeding with default filter argument: %.3lf\n", defaultFilter(*filter));
-            *fargs = defaultFilter(*filter);
+            (*fargs)[i] = atof(argv[EXPECTED_ARGS + i]);
+            if ((*fargs)[i] <= 0)
+                {
+                fprintf(stderr, "Invalid filter argument #%d, defaulting to 0\n");
+                (*fargs)[i] = 0.0;
+                }
             }
         }
     else
-        {
-        fprintf(stderr, "Invalid filter arguments for filter %d, proceeding with default filter argument: %.3lf\n", *filter, defaultFilter(*filter));
-        *fargs = defaultFilter(*filter);
-        }
+    {
+        *fargs = NULL;
+    }
 
-    printf("File: %s, filter: %d, out: %s\n", *fname, *filter, *out);    
+    printf("File: %s, filter: %d, out: %s, num filter args: %d\n", *fname, *filter, *out, *num_fargs);    
     return;
     }
 
@@ -862,6 +865,21 @@ void audio8D(struct WAV *sound, double rps, off_t *length)
     }
 
 /**
+ * @brief The printFilterUsage function prints the usage of the filters.
+ * The function prints the usage of the filters and their exepcted # of arguments.
+ */
+void printFilterUsage()
+    {
+    printf("Usage: ./<code> <in_filename> <out_filename> <filter> [<filter_arg1> <filter_arg2> ...]\n");
+    printf("Filters:\n");
+    printf("1: Change sample rate, # of args: 1\n");
+    printf("2: Reverse sound, # of args: 0 \n");
+    printf("3: Create 8D audio, # of args: 1\n");
+
+    return;
+    }
+
+/**
  * @brief The applyFilter function applies the filter to the wav file.
  * The function applies the filter based on the filter number by calling
  * the respective filter's function. The function then saves the wav file.
@@ -873,56 +891,39 @@ void audio8D(struct WAV *sound, double rps, off_t *length)
  * @param arg the argument for the filter
  * @precondition sound is a valid pointer to a wav object
  */
-void applyFilter(struct WAV *sound, int filter, char *out, off_t *length, double arg)
+void applyFilter(struct WAV *sound, int filter, char *out, off_t *length, double *fargs, int num_fargs)
     {
-    switch (filter)
+    int expectFargs = 0;
+    expectFargs = (filter == FILTER1 || filter == FILTER3) ? 1 : 0;
+    if (num_fargs != expectFargs)
         {
-        case FILTER1:
-            sampleRate(sound, (int)arg);
-            break;
+        printFilterUsage();
+        fprintf(stderr, "Invalid number of filter arguments for filter %d, expected %d, got %d\n", filter, expectFargs, num_fargs);
+        }
+    else
+        {
+        switch (filter)
+            {
+            case FILTER1:
+                sampleRate(sound, (int)fargs[FIRST]);
+                break;
+            
+            case FILTER2:
+                reverseSound(sound);
+                break;
+
+            case FILTER3:
+                audio8D(sound, fargs[FIRST], length);
+                break;
+
+            default:
+                break;
+            }
         
-        case FILTER2:
-            reverseSound(sound);
-            break;
-
-        case FILTER3:
-            audio8D(sound, arg, length);
-            break;
-
-        default:
-            break;
+        saveWav(sound, *length, out);
         }
 
-    saveWav(sound, *length, out);
     return;
-    }
-
-/**
- * @brief The defaultFilter function returns the default filter
- * argument for the given filter.
- * 
- * @param filter the filter to get the default argument for
- * @return double the default filter argument
- */
-double defaultFilter(int filter)
-    {
-    double arg = (double)0.0;
-
-    switch (filter)
-        {
-        case FILTER1:
-            arg = DEFAULT_FILTER1;
-            break;
-
-        case FILTER3:
-            arg = DEFAULT_FILTER3;
-            break;
-
-        default:
-            break;
-        }
-
-    return(arg);
     }
 
 /**
@@ -941,10 +942,10 @@ int main(int argc, char* argv[])
     char *fname = NULL, *out = NULL;
     struct MEM fcontent;
     struct WAV *sound = NULL;
-    int allocatedLength = FALSE, allocatedMem = FALSE, filter = 0;
-    double farg = (double)0.0;
+    int allocatedLength = FALSE, allocatedMem = FALSE, filter = 0, num_fargs = 0;
+    double *fargs = NULL;
     
-    parseArgs(argc, argv, &fname, &filter, &out, &farg);
+    parseArgs(argc, argv, &fname, &filter, &out, &fargs, &num_fargs);
 
     fcontent.pmem = NULL;
     fcontent.len = (off_t *)malloc(sizeof(off_t));
@@ -975,11 +976,11 @@ int main(int argc, char* argv[])
         {
         printf("WAV file is valid\n");
         calculateFields(sound, fcontent.len);
-        applyFilter(sound, filter, out, fcontent.len, farg);
+        applyFilter(sound, filter, out, fcontent.len, fargs, num_fargs);
         }
     
     if (allocatedMem) free(fcontent.pmem);
-
+    if (fargs != NULL) free(fargs);
     if (allocatedLength) free(fcontent.len);
     exit(0);
     }
