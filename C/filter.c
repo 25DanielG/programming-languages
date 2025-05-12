@@ -124,6 +124,7 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, do
 void sampleRate(struct WAV *sound, int rate);
 void reverseSound(struct WAV *sound);
 int32_t readSample(BYTE *data, int index, int bpsample);
+void writeSample(int32_t left, int32_t right, BYTE *data, int index, DWORD frameSize, WORD bpsample);
 void audio8D(struct WAV *sound, double rps, off_t *length);
 void applyFilter(struct WAV *sound, int filter, char *out, off_t *length, double arg);
 double defaultFilter(int filter);
@@ -672,6 +673,52 @@ int32_t readSample(BYTE *data, int index, int bpsample)
     return(sample);
     }
 
+/**
+ * @brief The writeSample function writes a sample to the wav file.
+ * The function writes the sample based on the bits per sample
+ * and handles 8, 16, and 24 bit samples. The function takes
+ * the left and right samples representing 2 channels
+ * and writes them to the data array.
+ * 
+ * @param left the left sample to write
+ * @param right the right sample to write
+ * @param data the data to write to
+ * @param index the index to write to
+ * @param frameSize the size of the frame
+ * @param bpsample the bits per sample
+ * @precondition data is a valid pointer to a byte array
+ */
+void writeSample(int32_t left, int32_t right, BYTE *data, int index, DWORD frameSize, WORD bpsample)
+    {
+    BYTE lbyte, rbyte;
+    int16_t l, r;
+    DWORD b;
+
+    if (bpsample == EIGHT_BITS)
+        {
+        lbyte = (BYTE)(left + UINT8_MIDPOINT);
+        rbyte = (BYTE)(right + UINT8_MIDPOINT);
+        data[frameSize * index] = lbyte;
+        data[frameSize * index + 1U] = rbyte;
+        }
+    else if (bpsample == SIXTEEN_BITS)
+        {
+        l = (left > INT16_MAX) ? INT16_MAX : (left < INT16_MIN ? INT16_MIN : left);
+        r = (right > INT16_MAX) ? INT16_MAX : (right < INT16_MIN ? INT16_MIN : right);
+        memcpy(&data[frameSize * index], &l, sizeof(int16_t));
+        memcpy(&data[frameSize * index + sizeof(int16_t)], &r, sizeof(int16_t));
+        }
+    else if (bpsample == TWENTY_FOUR_BITS)
+        {
+        for (b = 0U; b < THREE_BYTES; ++b)
+            {
+            data[(frameSize * index) + b] = (BYTE)(left >> (EIGHT_BITS * b)) & LOW_BYTE_MASK;
+            data[(frameSize * index) + THREE_BYTES + b] = (BYTE)(right >> (EIGHT_BITS * b)) & LOW_BYTE_MASK;
+            }
+        }
+
+    return;
+    }
 
 /**
  * @brief The audio8D function creates 8D audio from the wav file.
@@ -689,13 +736,11 @@ int32_t readSample(BYTE *data, int index, int bpsample)
 void audio8D(struct WAV *sound, double rps, off_t *length)
     {
     WORD nchannels, bpsample, c;
-    DWORD sampleRate, dsize, bytepsample, frameSize, nframes, i, stereoFrameSize, b;
+    DWORD sampleRate, dsize, bytepsample, frameSize, nframes, i, stereoFrameSize;
     BYTE *data, *modified;
-    BYTE lbyte, rbyte;
     size_t modSize;
     double t, angle, lpan, rpan, mono, left, right;
     int32_t sval, lval, rval;
-    int16_t l, r;
     int index;
 
     if (sound == NULL)
@@ -752,28 +797,7 @@ void audio8D(struct WAV *sound, double rps, off_t *length)
                     lval = (int32_t)left;
                     rval = (int32_t)right;
 
-                    if (bpsample == EIGHT_BITS)
-                        {
-                        lbyte = (BYTE)(lval + UINT8_MIDPOINT);
-                        rbyte = (BYTE)(rval + UINT8_MIDPOINT);
-                        modified[stereoFrameSize * i] = lbyte;
-                        modified[stereoFrameSize * i + 1U] = rbyte;
-                        }
-                    else if (bpsample == SIXTEEN_BITS)
-                        {
-                        l = (lval > INT16_MAX) ? INT16_MAX : (lval < INT16_MIN ? INT16_MIN : lval);
-                        r = (rval > INT16_MAX) ? INT16_MAX : (rval < INT16_MIN ? INT16_MIN : rval);
-                        memcpy(&modified[stereoFrameSize * i], &l, sizeof(int16_t));
-                        memcpy(&modified[stereoFrameSize * i + sizeof(int16_t)], &r, sizeof(int16_t));
-                        }
-                    else if (bpsample == TWENTY_FOUR_BITS)
-                        {
-                        for (b = 0U; b < THREE_BYTES; ++b)
-                            {
-                            modified[(stereoFrameSize * i) + b] = (BYTE)(lval >> (EIGHT_BITS * b)) & LOW_BYTE_MASK;
-                            modified[(stereoFrameSize * i) + THREE_BYTES + b] = (BYTE)(rval >> (EIGHT_BITS * b)) & LOW_BYTE_MASK;
-                            }
-                        }
+                    writeSample(lval, rval, modified, i, stereoFrameSize, bpsample);
                     }
 
                 memcpy(&(sound->subchunk2.data[0]), modified, modSize);
@@ -793,6 +817,7 @@ void audio8D(struct WAV *sound, double rps, off_t *length)
                 }
             }
         }
+
     return;
     }
 
