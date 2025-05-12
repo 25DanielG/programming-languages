@@ -885,8 +885,6 @@ int main(int argc, char* argv[])
     fcontent.len = (off_t *)malloc(sizeof(off_t));
     fcontent.pmem = fload(fname, fcontent.len);
 
-    printf("File length: %lld\n", (long long)*fcontent.len);
-
     if (fcontent.len == NULL || *(fcontent.len) <= 0)
         {
         silentFail("Error retrieving file length, ", fname, NULL);
