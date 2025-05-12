@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <math.h>
 
 #include "atcs.h"
 
@@ -29,10 +30,42 @@
 #define NUM_FILTERS (3)
 #define EXPECTED_ARGS (4)
 
+#define ARG0 (0)
+#define ARG1 (1)
+#define ARG2 (2)
+#define ARG3 (3)
+#define ARG4 (4)
+
 #define FILTER1 (1)
-#define DEFAULT_FILTER1 (40000)
+#define DEFAULT_FILTER1 ((double)40000.0)
 #define FILTER2 (2)
 #define FILTER3 (3)
+#define DEFAULT_FILTER3 ((double)0.15)
+
+#define BITS_PER_BYTE (8)
+#define WAV_STRING_BYTES (4)
+#define TWO_CHANNELS (2)
+
+#define ONE_BYTE (1)
+#define TWO_BYTES (2)
+#define THREE_BYTES (3)
+
+#define MSBYTE_24BITS (2)
+#define MIDBYTE_24BITS (1)
+#define LSBYTE_24BITS (0)
+
+#define EIGHT_BITS (8)
+#define SIXTEEN_BITS (16)
+#define TWENTY_FOUR_BITS (24)
+
+#define SIGN_MASK_24BITS (0x80)
+#define SIGN_EXTEND_24BITS (0xFF000000)
+#define NO_SIGN_EXTEND_24BITS (0x00000000)
+#define LOW_BYTE_MASK (0xFF)
+
+#define UINT8_MIDPOINT (128)
+
+#define PI (3.14159265)
 
 struct MEM
     {
@@ -87,10 +120,13 @@ struct ERR enforceSubformat(struct WAV *wav);
 void calculateFields(struct WAV *wav, off_t *length);
 int validateWav(struct WAV *sound);
 int saveWav(struct WAV *sound, off_t len, const char *fname);
-void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, int *fargs);
+void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, double *fargs);
 void sampleRate(struct WAV *sound, int rate);
 void reverseSound(struct WAV *sound);
-void applyFilter(struct WAV *sound, int filter, int length, int arg);
+int32_t readSample(BYTE *data, int index, int bpsample);
+void audio8D(struct WAV *sound, double rps, off_t *length);
+void applyFilter(struct WAV *sound, int filter, char *out, off_t *length, double arg);
+double defaultFilter(int filter);
 
 /**
  * @brief The following function is used to fail silently. The
@@ -319,11 +355,11 @@ void calculateFields(struct WAV *wav, off_t *length)
     DWORD subchunk2Size;
     DWORD chunkSize;
 
-    blockAlign = wav->subchunk1.numChannels * wav->subchunk1.bitsPerSample / ((WORD)8);
+    blockAlign = wav->subchunk1.numChannels * wav->subchunk1.bitsPerSample / ((WORD)BITS_PER_BYTE);
     byteRate = wav->subchunk1.sampleRate * ((DWORD)blockAlign);
-    header = ((DWORD)sizeof(struct INTRO)) + ((DWORD)sizeof(struct SBCHUNK1)) + ((DWORD)8);
+    header = ((DWORD)sizeof(struct INTRO)) + ((DWORD)sizeof(struct SBCHUNK1)) + ((DWORD)BITS_PER_BYTE);
     subchunk2Size = (DWORD)(*length) - header;
-    chunkSize = ((DWORD)4) + ((DWORD)8 + wav->subchunk1.subchunk1Size) + ((DWORD)8 + subchunk2Size);
+    chunkSize = ((DWORD)WAV_STRING_BYTES) + ((DWORD)BITS_PER_BYTE + wav->subchunk1.subchunk1Size) + ((DWORD)BITS_PER_BYTE + subchunk2Size);
 
     if (wav->subchunk1.blockAlign != blockAlign)
         {
@@ -402,6 +438,17 @@ int validateWav(struct WAV *sound)
     return(valid);
     }
 
+/**
+ * @brief The saveWav function saves the wav file. The function
+ * opens the file for writing, writes the wav data to the file,
+ * and closes the file. The function returns 1 if the file was saved
+ * successfully and 0 if there was an error.
+ * 
+ * @param sound the wav object to save
+ * @param len the length of the wav object
+ * @param fname the name of the file to save
+ * @return int 1 if the file was saved successfully, 0 if there was an error
+ */
 int saveWav(struct WAV *sound, off_t len, const char *fname)
     {
     int success = 0;
@@ -414,7 +461,7 @@ int saveWav(struct WAV *sound, off_t len, const char *fname)
         }
     else
         {
-        fd = open(fname, O_WRONLY | O_CREAT | O_BINARY);
+        fd = open(fname, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY);
         if (fd == -1)
             {
             silentFail("Failed to open output file for writing", fname, &len);
@@ -438,13 +485,26 @@ int saveWav(struct WAV *sound, off_t len, const char *fname)
     return(success);
     }
 
-void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, int *fargs)
+/**
+ * @brief The parseArgs function parses the command line arguments.
+ * The function checks if the arguments are valid and sets the
+ * default values if they are not. The function sets the filename,
+ * output filename, filter, and filter arguments.
+ * 
+ * @param argc the number of arguments
+ * @param argv the array of arguments
+ * @param fname the name of the file to open
+ * @param filter the filter to apply
+ * @param out the name of the output file
+ * @param fargs the filter arguments
+ */
+void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, double *fargs)
     {
-    int fargc = 0;
+    double fargc = (double)0.0;
 
     if (argc < EXPECTED_ARGS)
         {
-        fprintf(stderr, "Usage: %s <filename> <out_filename> <filter> <filter_args>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <filename> <out_filename> <filter> <filter_args>\n", argv[ARG0]);
         printf("Proceeding with default arguments, file: %s, filter %d, out: %s\n", DEFAULT_FILENAME, DEFAULT_FILTER, OUT_FILENAME);
         *fname = DEFAULT_FILENAME;
         *out = OUT_FILENAME;
@@ -452,9 +512,9 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, in
         }
     else
         {
-        *fname = argv[1];
-        *out = argv[2];
-        *filter = atoi(argv[3]);
+        *fname = argv[ARG1];
+        *out = argv[ARG2];
+        *filter = atoi(argv[ARG3]);
         if (*fname == NULL)
             {
             fprintf(stderr, "Invalid filename, proceeding with default filename: %s\n", DEFAULT_FILENAME);
@@ -474,39 +534,48 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, in
             }
         }
     
-    if (*filter == FILTER1) fargc = 1; // filter logic for which filters have arguments
+    if (*filter == FILTER1 || *filter == FILTER3) fargc = 1; // filter logic for which filters have arguments
 
     if (fargc == 0)
         {
-        *fargs = 0;
+        *fargs = (double)0.0;
         }
     else if (argc == EXPECTED_ARGS + fargc && argc > EXPECTED_ARGS)
         {
-        *fargs = atoi(argv[4]);
+        *fargs = atof(argv[ARG4]);
 
         if (*fargs <= 0)
             {
-            fprintf(stderr, "Invalid filter argument, proceeding with default filter argument: %d\n", DEFAULT_FILTER1);
-            *fargs = DEFAULT_FILTER1;
+            fprintf(stderr, "Invalid filter argument, proceeding with default filter argument: %.3lf\n", defaultFilter(*filter));
+            *fargs = defaultFilter(*filter);
             }
         }
     else
         {
-        fprintf(stderr, "Invalid filter arguments for filter %d, proceeding with default filter argument: %d\n", *filter, DEFAULT_FILTER1);
-        *fargs = DEFAULT_FILTER1;
+        fprintf(stderr, "Invalid filter arguments for filter %d, proceeding with default filter argument: %.3lf\n", *filter, defaultFilter(*filter));
+        *fargs = defaultFilter(*filter);
         }
 
     printf("File: %s, filter: %d, out: %s\n", *fname, *filter, *out);    
     return;
     }
 
+/**
+ * @brief The sampleRate function changes the sample rate of the wav file.
+ * The function recalculates the byteRate and blockAlign based on
+ * the new sample rate.
+ * 
+ * @param sound the wav object to change the sample rate of
+ * @param rate the new sample rate
+ * @precondition sound is a valid pointer to a wav object
+ */
 void sampleRate(struct WAV *sound, int rate)
     {
     DWORD byteRate;
     WORD blockAlign;
 
     sound->subchunk1.sampleRate = rate;
-    blockAlign = sound->subchunk1.numChannels * sound->subchunk1.bitsPerSample / ((WORD)8);
+    blockAlign = sound->subchunk1.numChannels * sound->subchunk1.bitsPerSample / ((WORD)BITS_PER_BYTE);
     byteRate = sound->subchunk1.sampleRate * ((DWORD)blockAlign);
 
     sound->subchunk1.byteRate = byteRate;
@@ -516,6 +585,14 @@ void sampleRate(struct WAV *sound, int rate)
     return;
     }
 
+/**
+ * @brief The reverseSound function reverses the sound in the wav file.
+ * The function swaps the samples of the wav file, accouting for the
+ * number of channels (and the bits per sample).
+ * 
+ * @param sound the wav object to reverse
+ * @precondition sound is a valid pointer to a wav object
+ */
 void reverseSound(struct WAV *sound)
     {
     WORD bpsample, channels, j;
@@ -526,7 +603,7 @@ void reverseSound(struct WAV *sound)
     bpsample = sound->subchunk1.bitsPerSample;
     channels = sound->subchunk1.numChannels;
     sb2size = sound->subchunk2.subchunk2Size;
-    bsize = (bpsample / 8) * channels;
+    bsize = (bpsample / BITS_PER_BYTE) * channels;
 
     if (bsize == 0)
         {
@@ -550,30 +627,237 @@ void reverseSound(struct WAV *sound)
                 }
             }
     
-        printf("Reversed %lu blocks of audio\n", (unsigned long)nBlocks);
+        printf("Reversed %lu blocks of sound\n", (unsigned long)nBlocks);
         }
 
     return;
     }
 
-void applyFilter(struct WAV *sound, int filter, int length, int arg)
+/**
+ * @brief The readSample function reads a sample from the wav file.
+ * The function reads the sample based on the bits per sample
+ * and returns the sample as an int32_t. It handles
+ * 8, 16, and 24 bit samples.
+ * 
+ * @param data the data to read from
+ * @param index the index to read from
+ * @param bpsample the bits per sample
+ * @return int32_t the sample read from the data
+ * @precondition data is a valid pointer to a byte array
+ */
+int32_t readSample(BYTE *data, int index, int bpsample)
+    {
+    int32_t sample = 0;
+    uint8_t tmp1;
+    int16_t tmp2;
+    uint8_t tmp3[THREE_BYTES];
+
+    if (bpsample == EIGHT_BITS)
+        {
+        memcpy(&tmp1, &data[index], ONE_BYTE);
+        sample = (int32_t)((int16_t)tmp1 - UINT8_MIDPOINT);
+        }
+    else if (bpsample == SIXTEEN_BITS)
+        {
+        memcpy(&tmp2, &data[index], TWO_BYTES);
+        sample = (int32_t)tmp2;
+        }
+    else if (bpsample == TWENTY_FOUR_BITS)
+        {
+        memcpy(tmp3, &data[index], THREE_BYTES);
+        sample = (tmp3[MSBYTE_24BITS] & SIGN_MASK_24BITS) ? SIGN_EXTEND_24BITS : NO_SIGN_EXTEND_24BITS;
+        sample |= (tmp3[MSBYTE_24BITS] << SIXTEEN_BITS) | (tmp3[MIDBYTE_24BITS] << EIGHT_BITS) | tmp3[LSBYTE_24BITS];
+        }
+    
+    return(sample);
+    }
+
+
+/**
+ * @brief The audio8D function creates 8D audio from the wav file.
+ * The function takes the wav file and applies a rotation per second
+ * to the sound. The function creates stereo sound and supports
+ * 8, 16, and 24 bit sound. The function modifies the passed
+ * sound wav object and returns the length of the sound
+ * (through the passed paramter).
+ * 
+ * @param sound the wav object to modify
+ * @param rps the rotations per second
+ * @param length the length of the wav object
+ * @precondition sound is a valid pointer to a wav object
+ */
+void audio8D(struct WAV *sound, double rps, off_t *length)
+    {
+    WORD nchannels, bpsample, c;
+    DWORD sampleRate, dsize, bytepsample, frameSize, nframes, i, stereoFrameSize, b;
+    BYTE *data, *modified;
+    BYTE lbyte, rbyte;
+    size_t modSize;
+    double t, angle, lpan, rpan, mono, left, right;
+    int32_t sval, lval, rval;
+    int16_t l, r;
+    int index;
+
+    if (sound == NULL)
+        {
+        fprintf(stderr, "rotations per second is invalid\n");
+        }
+    else
+        {
+        nchannels = sound->subchunk1.numChannels;
+        bpsample = sound->subchunk1.bitsPerSample;
+        sampleRate = sound->subchunk1.sampleRate;
+        dsize = sound->subchunk2.subchunk2Size;
+        data = sound->subchunk2.data;
+
+        if (bpsample != EIGHT_BITS && bpsample != SIXTEEN_BITS && bpsample != TWENTY_FOUR_BITS)
+            {
+            fprintf(stderr, "8d audio only supports 8,16,24-bit sound\n");
+            }
+        else
+            {
+            bytepsample = (DWORD)bpsample / BITS_PER_BYTE;
+            frameSize = (DWORD)(nchannels) * bytepsample;
+            nframes = dsize / frameSize;
+
+            stereoFrameSize = TWO_CHANNELS * bytepsample; // 2 channels in stereo
+            modSize = (size_t)(nframes * stereoFrameSize);
+            modified = (BYTE *)malloc(modSize);
+
+            if (modified == NULL)
+                {
+                fprintf(stderr, "Failed malloc for stereo output\n");
+                }
+            else
+                {
+                for (i = 0U; i < nframes; ++i)
+                    {
+                    t = (double)i / (double)sampleRate; // time (seconds)
+                    angle = 2.0 * PI * rps * t;
+                    lpan = sin(angle);
+                    rpan = cos(angle);
+
+                    mono = 0.0;
+                    for (c = 0U; c < nchannels; ++c)
+                        {
+                        index = (i * frameSize) + ((DWORD)c * bytepsample);
+                        sval = readSample(data, index, bpsample);
+                        mono += (double)sval;
+                        }
+                    mono /= (double)nchannels; // average to mono
+
+                    left = mono * (1.0 - lpan);
+                    right = mono * (1.0 + rpan);
+
+                    lval = (int32_t)left;
+                    rval = (int32_t)right;
+
+                    if (bpsample == EIGHT_BITS)
+                        {
+                        lbyte = (BYTE)(lval + UINT8_MIDPOINT);
+                        rbyte = (BYTE)(rval + UINT8_MIDPOINT);
+                        modified[stereoFrameSize * i] = lbyte;
+                        modified[stereoFrameSize * i + 1U] = rbyte;
+                        }
+                    else if (bpsample == SIXTEEN_BITS)
+                        {
+                        l = (lval > INT16_MAX) ? INT16_MAX : (lval < INT16_MIN ? INT16_MIN : lval);
+                        r = (rval > INT16_MAX) ? INT16_MAX : (rval < INT16_MIN ? INT16_MIN : rval);
+                        memcpy(&modified[stereoFrameSize * i], &l, sizeof(int16_t));
+                        memcpy(&modified[stereoFrameSize * i + sizeof(int16_t)], &r, sizeof(int16_t));
+                        }
+                    else if (bpsample == TWENTY_FOUR_BITS)
+                        {
+                        for (b = 0U; b < THREE_BYTES; ++b)
+                            {
+                            modified[(stereoFrameSize * i) + b] = (BYTE)(lval >> (EIGHT_BITS * b)) & LOW_BYTE_MASK;
+                            modified[(stereoFrameSize * i) + THREE_BYTES + b] = (BYTE)(rval >> (EIGHT_BITS * b)) & LOW_BYTE_MASK;
+                            }
+                        }
+                    }
+
+                memcpy(&(sound->subchunk2.data[0]), modified, modSize);
+                free(modified);
+                sound->subchunk1.numChannels = TWO_CHANNELS;
+                sound->subchunk1.blockAlign = sound->subchunk1.numChannels * sound->subchunk1.bitsPerSample / ((WORD)BITS_PER_BYTE);
+                sound->subchunk1.byteRate = sampleRate * sound->subchunk1.blockAlign;
+                sound->subchunk2.subchunk2Size = nframes * sound->subchunk1.numChannels * bytepsample;
+                sound->intro.chunkSize = ((DWORD)WAV_STRING_BYTES) + ((DWORD)BITS_PER_BYTE + sound->subchunk1.subchunk1Size) + ((DWORD)BITS_PER_BYTE + sound->subchunk2.subchunk2Size);
+
+                if (length != NULL)
+                    {
+                    *length = sizeof(struct INTRO) + sizeof(struct SBCHUNK1) + EIGHT_BITS + sound->subchunk2.subchunk2Size;
+                    }
+
+                printf("Created 8D audio at %.2f rotations/sec\n", rps);
+                }
+            }
+        }
+    return;
+    }
+
+/**
+ * @brief The applyFilter function applies the filter to the wav file.
+ * The function applies the filter based on the filter number by calling
+ * the respective filter's function. The function then saves the wav file.
+ * 
+ * @param sound the wav object to apply the filter to
+ * @param filter the filter to apply
+ * @param out the name of the output file
+ * @param length the length of the wav object
+ * @param arg the argument for the filter
+ * @precondition sound is a valid pointer to a wav object
+ */
+void applyFilter(struct WAV *sound, int filter, char *out, off_t *length, double arg)
     {
     switch (filter)
         {
-        case 1:
-            sampleRate(sound, arg);
+        case FILTER1:
+            sampleRate(sound, (int)arg);
             break;
         
-        case 2:
+        case FILTER2:
             reverseSound(sound);
+            break;
+
+        case FILTER3:
+            audio8D(sound, arg, length);
             break;
 
         default:
             break;
         }
 
-    saveWav(sound, length, OUT_FILENAME);
+    saveWav(sound, *length, out);
     return;
+    }
+
+/**
+ * @brief The defaultFilter function returns the default filter
+ * argument for the given filter.
+ * 
+ * @param filter the filter to get the default argument for
+ * @return double the default filter argument
+ */
+double defaultFilter(int filter)
+    {
+    double arg = (double)0.0;
+
+    switch (filter)
+        {
+        case FILTER1:
+            arg = DEFAULT_FILTER1;
+            break;
+
+        case FILTER3:
+            arg = DEFAULT_FILTER3;
+            break;
+
+        default:
+            break;
+        }
+
+    return(arg);
     }
 
 /**
@@ -581,7 +865,8 @@ void applyFilter(struct WAV *sound, int filter, int length, int arg)
  * The function calls the fload function to load a file into memory.
  * The function checks if the file is a valid wav file and if the
  * subformat is PCM. The function also checks if the fields are correct
- * and calculates any missing fields.
+ * and calculates any missing fields. The function then applies
+ * the filter to the wav file and saves the wav file.
  * 
  * @param argc the number of arguments
  * @param argv the array of arguments
@@ -591,13 +876,16 @@ int main(int argc, char* argv[])
     char *fname = NULL, *out = NULL;
     struct MEM fcontent;
     struct WAV *sound = NULL;
-    int allocatedLength = FALSE, allocatedMem = FALSE, filter = 0, farg = 0;
+    int allocatedLength = FALSE, allocatedMem = FALSE, filter = 0;
+    double farg = (double)0.0;
     
     parseArgs(argc, argv, &fname, &filter, &out, &farg);
 
     fcontent.pmem = NULL;
     fcontent.len = (off_t *)malloc(sizeof(off_t));
     fcontent.pmem = fload(fname, fcontent.len);
+
+    printf("File length: %lld\n", (long long)*fcontent.len);
 
     if (fcontent.len == NULL || *(fcontent.len) <= 0)
         {
@@ -624,7 +912,7 @@ int main(int argc, char* argv[])
         {
         printf("WAV file is valid\n");
         calculateFields(sound, fcontent.len);
-        applyFilter(sound, filter, *(fcontent.len), farg);
+        applyFilter(sound, filter, out, fcontent.len, farg);
         }
     
     if (allocatedMem) free(fcontent.pmem);
