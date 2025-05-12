@@ -1,5 +1,5 @@
 /**
- * @file fread.c
+ * @file wavproc.c
  * @author Daniel Gergov
  * @brief The following file contains a helper function to read a file
  * into memory. The code uses functions to open, read, and close

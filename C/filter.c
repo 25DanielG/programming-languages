@@ -1,5 +1,5 @@
 /**
- * @file fread.c
+ * @file filter.c
  * @author Daniel Gergov
  * @brief The following file contains a helper function to read a file
  * into memory. The code uses functions to open, read, and close
@@ -9,9 +9,16 @@
  * and if the subformat is PCM. The program also checks if the fields
  * are correct and calculates any missing fields.
  * 
+ * After verifying the wav file, the program applies a given filter to the file
+ * and saves the wav file to a given file name. The code has
+ * 3 filters:
+ * 1. Modify the sample rate
+ * 2. Reverse the sound
+ * 3. Create 8D audio
+ * 
  * gcc -Wall filter.c
  * 
- * @date 2025-05-04
+ * @date 2025-05-12
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -789,6 +796,7 @@ void audio8D(struct WAV *sound, double rps, off_t *length)
                         sval = readSample(data, index, bpsample);
                         mono += (double)sval;
                         }
+                    
                     mono /= (double)nchannels; // average to mono
 
                     left = mono * (1.0 - lpan);
