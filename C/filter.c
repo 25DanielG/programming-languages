@@ -12,6 +12,7 @@
  * After verifying the wav file, the program applies a given filter to the file
  * and saves the wav file to a given file name. The code has
  * 3 filters:
+ * 0. Print important header information
  * 1. Modify the sample rate
  * 2. Reverse the sound
  * 3. Create 8D audio
@@ -45,6 +46,7 @@
 
 #define FIRST (0)
 
+#define FILTER0 (0)
 #define FILTER1 (1)
 #define DEFAULT_FILTER1 ((double)40000.0)
 #define FILTER2 (2)
@@ -476,7 +478,7 @@ int saveWav(struct WAV *sound, off_t len, const char *fname)
         }
     else
         {
-        fd = open(fname, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY);
+        fd = open(fname, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, S_IREAD | S_IWRITE);
         if (fd == -1)
             {
             silentFail("Failed to open output file for writing", fname, &len);
@@ -545,7 +547,7 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, do
             *out = OUT_FILENAME;
             }
 
-        if (*filter <= 0 || *filter > NUM_FILTERS)
+        if (*filter < 0 || *filter > NUM_FILTERS)
             {
             fprintf(stderr, "Invalid filter, proceeding with default filter: %d\n", DEFAULT_FILTER);
             *filter = DEFAULT_FILTER;
@@ -562,17 +564,35 @@ void parseArgs(int argc, char *argv[], char **fname, int *filter, char **out, do
             (*fargs)[i] = atof(argv[EXPECTED_ARGS + i]);
             if ((*fargs)[i] <= 0)
                 {
-                fprintf(stderr, "Invalid filter argument #%d, defaulting to 0\n");
+                fprintf(stderr, "Invalid filter argument #%d, defaulting to 0\n", i + 1);
                 (*fargs)[i] = 0.0;
                 }
             }
         }
     else
-    {
+        {
         *fargs = NULL;
-    }
+        }
 
     printf("File: %s, filter: %d, out: %s, num filter args: %d\n", *fname, *filter, *out, *num_fargs);    
+    return;
+    }
+
+/**
+ * @brief The printHeader function prints the header of the wav file.
+ * It prints useful information about the file such as the number of channels,
+ * the sample rate, the byte rate, and the bits per sample.
+ * 
+ * @param sound the sound to print the header of
+ */
+void printHeader(struct WAV *sound)
+    {
+    printf("WAV file header:\n");
+    printf("Num channels: %hu\n", sound->subchunk1.numChannels);
+    printf("Sample rate: %u\n", sound->subchunk1.sampleRate);
+    printf("Byte rate: %u\n", sound->subchunk1.byteRate);
+    printf("Bits per sample: %hu\n", sound->subchunk1.bitsPerSample);
+    
     return;
     }
 
@@ -765,9 +785,9 @@ void writeSample(int32_t left, int32_t right, BYTE *data, int index, DWORD frame
  * @brief The audio8D function creates 8D audio from the wav file.
  * The function takes the wav file and applies a rotation per second
  * to the sound. The function creates stereo sound and supports
- * 8, 16, and 24 bit sound. The function modifies the passed
+ * 8, 12, 16, 24, and 32 bit sound. The function modifies the passed
  * sound wav object and returns the length of the sound
- * (through the passed paramter).
+ * (through the passed parameter).
  * 
  * @param sound the wav object to modify
  * @param rps the rotations per second
@@ -872,6 +892,7 @@ void printFilterUsage()
     {
     printf("Usage: ./<code> <in_filename> <out_filename> <filter> [<filter_arg1> <filter_arg2> ...]\n");
     printf("Filters:\n");
+    printf("0: Print header, # of args: 0\n");
     printf("1: Change sample rate, # of args: 1\n");
     printf("2: Reverse sound, # of args: 0 \n");
     printf("3: Create 8D audio, # of args: 1\n");
@@ -904,6 +925,10 @@ void applyFilter(struct WAV *sound, int filter, char *out, off_t *length, double
         {
         switch (filter)
             {
+            case FILTER0:
+                printHeader(sound);
+                break;
+
             case FILTER1:
                 sampleRate(sound, (int)fargs[FIRST]);
                 break;
