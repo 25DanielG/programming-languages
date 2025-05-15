@@ -623,7 +623,7 @@ void sampleRate(struct WAV *sound, int rate)
 
 /**
  * @brief The reverseSound function reverses the sound in the wav file.
- * The function swaps the samples of the wav file, accouting for the
+ * The function swaps the samples of the wav file, accounting for the
  * number of channels (and the bits per sample).
  * 
  * @param sound the wav object to reverse
